@@ -83,11 +83,12 @@ platform :ios do
     UI.message("App: #{app.name} (#{app.id})")
     app.get_beta_groups.each do |g|
       UI.message("Group: #{g.name} [#{g.is_internal_group ? 'internal' : 'external'}]")
-      Spaceship::ConnectAPI.get_beta_testers(filter: { betaGroups: g.id }).each do |t|
+      Spaceship::ConnectAPI.get_beta_testers(filter: { betaGroups: g.id }).all_pages.flat_map(&:to_models).each do |t|
         UI.message("  Tester: #{t.email} (#{t.first_name} #{t.last_name})")
       end
     end
-    Spaceship::ConnectAPI::Build.all(app_id: app.id, sort: "-uploadedDate", limit: 5).each do |b|
+    # Build.all reads every page, so ask for one page of the five newest.
+    Spaceship::ConnectAPI.get_builds(filter: { app: app.id }, sort: "-uploadedDate", limit: 5).to_models.each do |b|
       UI.message("Build #{b.version}: #{b.processing_state}")
     end
   end

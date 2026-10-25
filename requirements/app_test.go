@@ -4,6 +4,7 @@
 package requirements
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -32,7 +33,11 @@ func runScript(t *testing.T, app, name string, env ...string) (string, int) {
 	cmd := exec.Command("sh", script)
 	cmd.Dir = app
 	cmd.Env = append(os.Environ(), env...)
-	out, _ := cmd.CombinedOutput()
+	out, err := cmd.CombinedOutput()
+	var exit *exec.ExitError
+	if err != nil && !errors.As(err, &exit) {
+		t.Fatalf("starting %s: %v", name, err)
+	}
 	return strings.TrimSpace(string(out)), cmd.ProcessState.ExitCode()
 }
 
