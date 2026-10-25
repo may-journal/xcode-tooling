@@ -1,0 +1,150 @@
+# Lanes every may-journal Swift app shares, released by tag. Each app's fastlane/Fastfile
+# imports this file with import_from_git, at the tag its ci_scripts/xcode-tooling.version
+# names, so a Mac runs the lanes Xcode Cloud's scripts came with.
+#
+# fastlane/Appfile names the app (app_identifier) and its team (team_id); fastlane/Gymfile
+# names its project and scheme. Org tooling fills both from the app's own project.
+# Xcode Cloud is each app's only uploader, so no lane here uploads a build: two uploaders
+# race for build numbers.
+#
+# The App Store Connect lanes read the team's API key from the environment, or from
+# fastlane/.env, which stays out of git: ASC_KEY_ID, ASC_ISSUER_ID, and either ASC_KEY_PATH,
+# the .p8 file's path, or ASC_PRIVATE_KEY, its text.
+
+skip_docs
+default_platform(:ios)
+
+# The Xcode Cloud workflow the org keeps for each app, found from each app's own project.
+CLOUD_WORKFLOW = "Build and TestFlight (main)".freeze
+
+# A value from fastlane/Appfile.
+def appfile_value(key)
+  value = CredentialsManager::AppfileConfig.try_fetch_value(key).to_s
+  UI.user_error!("Set #{key} in fastlane/Appfile") if value.empty?
+  value
+end
+
+# A setting from the environment or fastlane/.env, or a user error naming it.
+def env_value(name)
+  value = ENV[name].to_s
+  UI.user_error!("Set #{name} in the environment or fastlane/.env") if value.empty?
+  value
+end
+
+def asc_api_key
+  key = { key_id: env_value("ASC_KEY_ID"), issuer_id: env_value("ASC_ISSUER_ID"), duration: 1200, in_house: false }
+  if ENV["ASC_PRIVATE_KEY"].to_s.empty?
+    key[:key_filepath] = File.expand_path(env_value("ASC_KEY_PATH"))
+  else
+    key[:key_content] = ENV["ASC_PRIVATE_KEY"]
+  end
+  app_store_connect_api_key(**key)
+end
+
+def store_app
+  asc_api_key
+  Spaceship::ConnectAPI::App.find(appfile_value(:app_identifier)) ||
+    UI.user_error!("No App Store Connect record for #{appfile_value(:app_identifier)}; the owner creates it")
+end
+
+# The app's managed Xcode Cloud workflow, or a user error naming what is missing.
+def managed_workflow(client, app)
+  product = begin
+    client.get("v1/apps/#{app.id}/ciProduct").body["data"]
+  rescue Spaceship::UnexpectedResponse => e
+    UI.user_error!("Xcode Cloud is not set up for this app; the owner enables it once in Xcode (#{e.message})")
+  end
+  workflows = client.get("v1/ciProducts/#{product['id']}/workflows", { limit: 200 }).body["data"]
+  workflows.find { |w| w.dig("attributes", "name") == CLOUD_WORKFLOW } ||
+    UI.user_error!("No '#{CLOUD_WORKFLOW}' workflow yet; the org's workflow sync creates it within the hour")
+end
+
+# Every item of a list, following each page's next link.
+def all_pages(client, path, params)
+  items = []
+  while path
+    body = client.get(path, params).body
+    items.concat(body["data"])
+    path = body.dig("links", "next")
+    params = {}
+  end
+  items
+end
+
+# The repository root, the folder holding fastlane/.
+def repo_root
+  File.expand_path("..", FastlaneCore::FastlaneFolder.path)
+end
+
+platform :ios do
+  desc "Print the app, its tester groups with their testers, and its newest builds (read-only)"
+  lane :status do
+    app = store_app
+    UI.message("App: #{app.name} (#{app.id})")
+    app.get_beta_groups.each do |g|
+      UI.message("Group: #{g.name} [#{g.is_internal_group ? 'internal' : 'external'}]")
+      Spaceship::ConnectAPI.get_beta_testers(filter: { betaGroups: g.id }).each do |t|
+        UI.message("  Tester: #{t.email} (#{t.first_name} #{t.last_name})")
+      end
+    end
+    Spaceship::ConnectAPI::Build.all(app_id: app.id, sort: "-uploadedDate", limit: 5).each do |b|
+      UI.message("Build #{b.version}: #{b.processing_state}")
+    end
+  end
+
+  desc "Print the newest runs of the app's Xcode Cloud workflow (read-only)"
+  lane :cloud_status do
+    app = store_app
+    client = Spaceship::ConnectAPI.test_flight_request_client
+    workflow = managed_workflow(client, app)
+    runs = client.get("v1/ciWorkflows/#{workflow['id']}/buildRuns", { limit: 6, sort: "-number" }).body["data"]
+    UI.important("No runs yet.") if runs.empty?
+    runs.each do |r|
+      a = r["attributes"]
+      sha = a.dig("sourceCommit", "commitSha").to_s[0, 7]
+      UI.message("Run #{a['number']}: #{a['executionProgress']} #{a['completionStatus']} (#{sha}) #{a['createdDate']}")
+    end
+  end
+
+  desc "Start a run of the app's Xcode Cloud workflow on main. dry_run:true prints the request instead"
+  lane :cloud_build do |options|
+    app = store_app
+    client = Spaceship::ConnectAPI.test_flight_request_client
+    workflow = managed_workflow(client, app)
+    repo = client.get("v1/ciWorkflows/#{workflow['id']}/repository").body["data"]
+    refs = all_pages(client, "v1/scmRepositories/#{repo['id']}/gitReferences", { limit: 200 })
+    main = refs.find { |r| r.dig("attributes", "canonicalName") == "refs/heads/main" } ||
+           UI.user_error!("Xcode Cloud does not see a main branch")
+    body = { data: { type: "ciBuildRuns", relationships: {
+      workflow: { data: { type: "ciWorkflows", id: workflow["id"] } },
+      sourceBranchOrTag: { data: { type: "scmGitReferences", id: main["id"] } }
+    } } }
+    if options[:dry_run].to_s == "true"
+      UI.message("Would POST v1/ciBuildRuns #{body.to_json}")
+      next
+    end
+    run = client.post("v1/ciBuildRuns", body).body["data"]
+    UI.success("Started run #{run.dig('attributes', 'number')} of '#{CLOUD_WORKFLOW}'")
+  end
+
+  desc "Archive Release on this Mac to prove it builds; nothing uploads. sign:false skips signing"
+  lane :archive do |options|
+    root = repo_root
+    # The cloud's own clone step, so the project comes from the same pinned XcodeGen.
+    sh("sh", File.join(root, "ci_scripts", "ci_post_clone.sh"))
+    team = appfile_value(:team_id)
+    xcargs = "-allowProvisioningUpdates DEVELOPMENT_TEAM=#{team} CODE_SIGN_STYLE=Automatic"
+    xcargs += " CODE_SIGNING_ALLOWED=NO" if options[:sign].to_s == "false"
+    build_app(
+      configuration: "Release",
+      destination: "generic/platform=iOS",
+      skip_package_ipa: true,
+      # Xcode Cloud resolves packages only from the committed Package.resolved; so does this.
+      disable_package_automatic_updates: true,
+      archive_path: File.join(root, ".build", "archive", "App.xcarchive"),
+      derived_data_path: File.join(root, ".build", "DerivedData"),
+      buildlog_path: File.join(root, ".build", "logs"),
+      xcargs: xcargs
+    )
+  end
+end
