@@ -23,8 +23,8 @@ Xcode Cloud runs only scripts an app commits, so each app holds a small shim:
 | App file | Holds |
 | --- | --- |
 | `ci_scripts/xcode-tooling.version` | One line: the tag the app runs, such as `v1.0.0` |
-| `ci_scripts/xcode-tooling.sh` | The shim. It clones that tag with `git clone --depth 1 --branch` and runs the script named like the link it was called by. A missing tag fails the build, naming it. |
-| `ci_scripts/ci_post_clone.sh`, `ci_scripts/ci_post_xcodebuild.sh` | Links to the shim |
+| `ci_scripts/xcode-tooling.sh` | The shim. It clones that tag with `git clone --depth 1 --branch` and runs the hook script it is given. A missing tag fails the build, naming it. |
+| `ci_scripts/ci_post_clone.sh`, `ci_scripts/ci_post_xcodebuild.sh` | Two-line hooks that run the shim with their own name |
 | `fastlane/Fastfile` | `import_from_git` of this repo's `fastlane/Fastfile` at the same tag, then the app's own lanes |
 
 Org tooling seeds these files in each app, and Renovate bumps the version file when a release lands. This repo is public because an Xcode Cloud script has no token to clone a private repo.

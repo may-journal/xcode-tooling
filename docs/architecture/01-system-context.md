@@ -45,4 +45,4 @@ Numbers on nodes and arrows match the callout table.
 | 8   | Same path as the owner, ending at the owner's approval. | One flow for people and agents. |
 | 9   | Tags `vX.Y.Z` and moves `vX`. | A tag is what an app pins. |
 | 10  | The shim clones the pinned tag; the lane file imports the lanes from it. | A Mac and the cloud run the same release. |
-| 11  | Runs the app's `ci_post_clone.sh` and `ci_post_xcodebuild.sh`. | Both are links to the app's shim. |
+| 11  | Runs the app's `ci_post_clone.sh` and `ci_post_xcodebuild.sh`. | Both hand their name to the app's shim. |

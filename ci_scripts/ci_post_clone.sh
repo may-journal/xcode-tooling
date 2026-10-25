@@ -1,6 +1,6 @@
 #!/bin/sh
 # Xcode Cloud runs this after cloning, before it builds. It takes no arguments. An app's
-# ci_scripts/ci_post_clone.sh is a link to its shim, which clones this release and runs this
+# ci_scripts/ci_post_clone.sh hands its name to its shim, which clones this release and runs this
 # file from the app's root.
 #
 # Usage:   run by the app's shim; here, cd <app> && sh <this repo>/ci_scripts/ci_post_clone.sh

@@ -2,7 +2,7 @@
 # Xcode Cloud runs this after each xcodebuild action. After an archive, it writes the merge's
 # changelog entry to TestFlight/WhatToTest.en-US.txt. Xcode Cloud uploads that file as the
 # build's What to Test notes, which TestFlight shows in its email and app. An app's
-# ci_scripts/ci_post_xcodebuild.sh is a link to its shim, which clones this release and runs
+# ci_scripts/ci_post_xcodebuild.sh hands its name to its shim, which clones this release and runs
 # this file from the app's root.
 #
 # Usage:   run by the app's shim; here, cd <app> && CI_ARCHIVE_PATH=x sh ci_scripts/ci_post_xcodebuild.sh

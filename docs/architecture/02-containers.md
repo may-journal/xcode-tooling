@@ -37,7 +37,7 @@ Numbers on nodes and arrows match the callout table. Nothing here builds or depl
 | --- | --- | --- |
 | 1   | Same actor as the system context. | Runs lanes on a Mac. |
 | 2   | The cloud scripts and shared lanes at one tag. | Each app runs exactly the release it names. |
-| 3   | The shim each app commits, reached through its two hook links. | Apple runs only committed scripts. |
+| 3   | The shim each app commits, run by its two hook scripts. | Apple runs only committed scripts. |
 | 4   | The lane file each app owns, with its own lanes below the import. | fastlane's own way to share lanes. |
 | 5   | Builds, tester groups and Xcode Cloud runs. | The team's API key signs each call. |
 | 6   | Clones the tag the app's version file names, and runs the script of the same name. | The app pins one release. |
