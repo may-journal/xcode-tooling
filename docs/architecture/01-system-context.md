@@ -20,6 +20,13 @@ C4Context
     Rel(release, tooling, "C")
     Rel(apps, tooling, "D")
     Rel(cloud, apps, "E")
+
+    UpdateElementStyle(owner, $bgColor="#334155", $borderColor="#1e293b", $fontColor="#ffffff")
+    UpdateElementStyle(agent, $bgColor="#334155", $borderColor="#1e293b", $fontColor="#ffffff")
+    UpdateElementStyle(tooling, $bgColor="#1d4ed8", $borderColor="#1e3a8a", $fontColor="#ffffff")
+    UpdateElementStyle(apps, $bgColor="#64748b", $borderColor="#475569", $fontColor="#ffffff")
+    UpdateElementStyle(cloud, $bgColor="#64748b", $borderColor="#475569", $fontColor="#ffffff")
+    UpdateElementStyle(release, $bgColor="#64748b", $borderColor="#475569", $fontColor="#ffffff")
 ```
 
 ```mermaid
@@ -29,9 +36,13 @@ C4Context
     Person(who, "Person", "Owner or agent who changes the tooling")
     System(sys, "System", "The tooling this repo releases")
     System_Ext(ext, "External", "An app or service that uses it")
+
+    UpdateElementStyle(who, $bgColor="#334155", $borderColor="#1e293b", $fontColor="#ffffff")
+    UpdateElementStyle(sys, $bgColor="#1d4ed8", $borderColor="#1e3a8a", $fontColor="#ffffff")
+    UpdateElementStyle(ext, $bgColor="#64748b", $borderColor="#475569", $fontColor="#ffffff")
 ```
 
-Numbers on nodes and arrows match the callout table.
+Numbers on nodes and letters on arrows match the callout table.
 
 | #   | Description | Why |
 | --- | --- | --- |
