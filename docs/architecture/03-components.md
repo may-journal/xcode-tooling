@@ -22,10 +22,10 @@ C4Component
     System_Ext(xcodegen, "5 XcodeGen 2.46.0", "Release zip")
     System_Ext(asc, "6 App Store Connect API", "REST")
 
-    Rel(clone, xcodegen, "7")
-    Rel(owner, fastfile, "8")
-    Rel(fastfile, asc, "9")
-    Rel(fastfile, clone, "10")
+    Rel(clone, xcodegen, "A")
+    Rel(owner, fastfile, "B")
+    Rel(fastfile, asc, "C")
+    Rel(fastfile, clone, "D")
 ```
 
 ```mermaid
@@ -49,7 +49,7 @@ Numbers on nodes and arrows match the callout table.
 | 4   | `fastlane/Fastfile` holds the shared lanes and their App Store Connect helpers. | The app's lane file imports it at the pinned tag. |
 | 5   | The XcodeGen release zip on GitHub. | Checked by its SHA-256 before it runs. |
 | 6   | The App Store Connect REST API. | Builds, groups and cloud runs live there. |
-| 7   | Downloads XcodeGen unless that version is installed. | A fresh cloud machine has none. |
-| 8   | Runs a lane through the app's lane file. | The app's Appfile and Gymfile name it. |
-| 9   | Reads and starts runs with the team's key. | No lane uploads. |
-| 10  | `archive` runs the app's post-clone hook, which reaches this script. | Local and cloud projects match. |
+| A   | Downloads XcodeGen unless that version is installed. | A fresh cloud machine has none. |
+| B   | Runs a lane through the app's lane file. | The app's Appfile and Gymfile name it. |
+| C   | Reads and starts runs with the team's key. | No lane uploads. |
+| D   | `archive` runs the app's post-clone hook, which reaches this script. | Local and cloud projects match. |
