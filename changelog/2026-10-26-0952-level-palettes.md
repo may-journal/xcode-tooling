@@ -1,7 +1,3 @@
----
-relatedConfigurations: ['../release-please-config.json']
----
-
 ### 2026.10.26.0952
 
 > The architecture views follow the per-level form and palette that Fitness now enforces.
