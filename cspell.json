@@ -1,0 +1,38 @@
+{
+  "useGitignore": true,
+  "version": "0.2",
+  "flagWords": [
+    "Bottom Line",
+    "MayCalendar",
+    "MayJournals",
+    "MayPhotos",
+    "May Calendar",
+    "May Journals",
+    "May Photos",
+    "Photo Portal",
+    "PhotoPortal",
+    "Secret Gifts",
+    "SecretGifts",
+    "Totalist"
+  ],
+  "words": [
+    "Appfile",
+    "Fastfile",
+    "fastfile",
+    "gpgsign",
+    "appfile",
+    "buildlog",
+    "fitnessrc",
+    "Gymfile",
+    "mayjournal",
+    "Totalist",
+    "uploaders",
+    "xcargs",
+    "xcarchive",
+    "xcodebuild",
+    "XcodeGen",
+    "xcodegen",
+    "xcodeproj",
+    "yonaskolb"
+  ]
+}

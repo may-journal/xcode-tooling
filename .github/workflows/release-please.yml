@@ -1,0 +1,246 @@
+# Synced to each repo that opts in through settings/repo-files.json.
+# may-journal/.github holds the source copy in templates/release; edit it there.
+# It is synced whole, since a public repo cannot call a private repo's workflow.
+# Release Please keeps a release PR open from conventional commits on main.
+# Merging it tags vX.Y.Z, publishes the release, and moves vX to it.
+name: Release Please
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # The approve job below reads the release PR from here.
+    outputs:
+      pr: ${{ steps.release.outputs.pr }}
+    steps:
+      - name: Mint the automation App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.AUTOMATION_APP_ID }}
+          private-key: ${{ secrets.AUTOMATION_APP_KEY }}
+      - name: Prepare or publish the release
+        id: release
+        uses: googleapis/release-please-action@v5
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+      # pr-check wants plain bullets under "## Changelog" and no bold scopes.
+      # Release Please writes a "## 1.0.0" heading on a first release, which
+      # has no compare link, and bold scopes. Demote the headings below the
+      # header and strip the bold, as fitness-runner's release-pr step does.
+      # A later release's heading compares the previous tag to the new tag,
+      # which 404s until the PR merges, so point it at the PR's head commit.
+      - name: Shape the release PR notes
+        id: shape
+        if: ${{ steps.release.outputs.pr != '' }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ fromJSON(steps.release.outputs.pr || '{}').number }}
+        run: |
+          body="$(gh pr view "$PR" --json body --jq .body)"
+          head="$(gh pr view "$PR" --json headRefOid --jq .headRefOid)"
+          shaped="$(printf '%s\n' "$body" | awk -v head="$head" '
+            after && first { first = 0; if ($0 != "") print "" }
+            { line = $0 }
+            after && head != "" && /^##+ \[.*\/compare\// { sub(/\.\.\.[^)]*\)/, "..." head ")", line) }
+            after { sub(/^## /, "### ", line); while (sub(/\*\*/, "", line)) {} }
+            { print line }
+            $0 == "## Changelog" { after = 1; first = 1 }')"
+          if [ "$shaped" != "$body" ]; then
+            gh pr edit "$PR" --body "$shaped"
+            echo "edited=true" >> "$GITHUB_OUTPUT"
+          fi
+      # pr-check needs every PR to close an issue, so the release PR closes
+      # one tracking issue, found by title on each rewrite.
+      - name: Link the release PR to its tracking issue
+        id: link
+        if: ${{ steps.release.outputs.pr != '' }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ fromJSON(steps.release.outputs.pr || '{}').number }}
+        run: |
+          title="Publish the release from PR #$PR"
+          issue="$(gh issue list --state all --limit 200 --json number,title |
+            jq -r --arg t "$title" 'map(select(.title == $t))[0].number // empty')"
+          if [ -z "$issue" ]; then
+            url="$(gh issue create --title "$title" --body "Release Please owns the version and notes in #$PR.")"
+            issue="${url##*/}"
+          fi
+          body="$(gh pr view "$PR" --json body --jq .body)"
+          case "$body" in
+            *"Closes #$issue."*) ;;
+            *) gh pr edit "$PR" --body "$body
+
+          Closes #$issue."
+               echo "edited=true" >> "$GITHUB_OUTPUT" ;;
+          esac
+      # pr-check runs when a PR opens or reopens but not when its body is
+      # edited, so it judged the body Release Please first wrote. Reopen the PR
+      # after a rewrite so the check reads the shaped body.
+      - name: Rerun pr-check on the shaped body
+        if: ${{ steps.release.outputs.pr != '' && (steps.shape.outputs.edited == 'true' || steps.link.outputs.edited == 'true') }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ fromJSON(steps.release.outputs.pr || '{}').number }}
+        run: |
+          gh pr close "$PR"
+          gh pr reopen "$PR"
+      - name: Move the major version tag
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          MAJOR: v${{ steps.release.outputs.major }}
+          SHA: ${{ steps.release.outputs.sha }}
+        run: |
+          refs="repos/$GITHUB_REPOSITORY/git/refs"
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$MAJOR" --silent 2>/dev/null; then
+            gh api -X PATCH "$refs/tags/$MAJOR" -f sha="$SHA" -F force=true --silent
+          else
+            gh api -X POST "$refs" -f ref="refs/tags/$MAJOR" -f sha="$SHA" --silent
+          fi
+
+  # The org ruleset needs one approval, and the automation App cannot approve
+  # its own PR. This mirrors fitness-runner's release-approve.yml, inline since
+  # a public repo cannot call a private repo's workflow. The run's own token
+  # reads the PR and its checks. The approver's token, APPROVER_TOKEN, a
+  # machine user with write access, only reads its login and approves, since
+  # only an approval from someone with write access counts toward the ruleset
+  # (may-journal/.github#125). Without that secret a person approves.
+  approve:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.pr != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: read
+      statuses: read
+    # Checks may take a while; the wait below gives up after 20 minutes.
+    timeout-minutes: 25
+    # A newer run waits for the running one, which finds the head moved and
+    # approves nothing, rather than cancelling it partway through its wait.
+    concurrency:
+      group: release-approve
+      cancel-in-progress: false
+    env:
+      PR: ${{ fromJSON(needs.release-please.outputs.pr || '{}').number }}
+    steps:
+      - name: Check the approver token
+        id: secrets
+        env:
+          TOKEN: ${{ secrets.APPROVER_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::notice::APPROVER_TOKEN is not available to this repo, so a person approves the PR."
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+      # Only the automation App's PR whose files are all release files
+      # qualifies. A rename counts both its paths, so nothing moves in.
+      - name: Check the release PR
+        id: guard
+        if: ${{ steps.secrets.outputs.ready == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          AUTHOR: app/may-journal-automation
+        run: |
+          view="$(gh pr view "$PR" --json author,state,isDraft,headRefOid)"
+          author="$(jq -r .author.login <<< "$view")"
+          if [ "$author" != "$AUTHOR" ]; then
+            echo "::notice::PR #$PR is by $author, not $AUTHOR, so a person approves it."
+            exit 0
+          fi
+          if [ "$(jq -r '.state + " " + (.isDraft | tostring)' <<< "$view")" != "OPEN false" ]; then
+            echo "::notice::PR #$PR is not open and ready, so it gets no approval."
+            exit 0
+          fi
+          files="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --paginate |
+            jq -rs 'add | .[] | .filename, (.previous_filename // empty)')"
+          others="$(grep -vxF -e CHANGELOG.md -e version.txt -e .release-please-manifest.json <<< "$files" || true)"
+          if [ -z "$files" ] || [ -n "$others" ]; then
+            echo "::notice::PR #$PR changes more than the release files, so a person approves it: ${others//$'\n'/, }"
+            exit 0
+          fi
+          printf 'sha=%s\n' "$(jq -r .headRefOid <<< "$view")" >> "$GITHUB_OUTPUT"
+      # Every check but this run's own, known by its run link, must pass. A
+      # red or cancelled check, a new push, or checks still running after the
+      # last try leave the PR for a person.
+      - name: Wait for green checks
+        id: checks
+        if: ${{ steps.guard.outputs.sha != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SHA: ${{ steps.guard.outputs.sha }}
+          TRIES: 40
+          WAIT_SECONDS: 30
+        run: |
+          verdict=pending
+          error="$(mktemp)"
+          own="/actions/runs/$GITHUB_RUN_ID/"
+          for ((try = 1; try <= TRIES; try++)); do
+            if [ "$try" -gt 1 ]; then sleep "$WAIT_SECONDS"; fi
+            # gh exits 1 on a failed check and 8 on a pending one, and
+            # prints the list either way.
+            checks="$(gh pr checks "$PR" --json bucket,link 2> "$error")" || true
+            if ! jq -e 'type == "array"' <<< "$checks" > /dev/null 2>&1; then
+              if grep -q 'no checks reported' "$error"; then continue; fi
+              echo "::error::Could not read the checks of PR #$PR: $(cat "$error")"
+              exit 1
+            fi
+            verdict="$(jq -r --arg own "$own" '[.[] | select((.link // "") | contains($own) | not) | .bucket] |
+              if any(. == "fail" or . == "cancel") then "red"
+              elif length == 0 or any(. == "pending") then "pending" else "green" end' <<< "$checks")"
+            if [ "$verdict" != pending ]; then break; fi
+          done
+          case "$verdict" in
+            red)
+              echo "::notice::PR #$PR has a failed or cancelled check, so it gets no approval."
+              exit 0 ;;
+            pending)
+              echo "::warning::PR #$PR still had checks running after $TRIES tries, so a person approves it."
+              exit 0 ;;
+          esac
+          head="$(gh pr view "$PR" --json headRefOid --jq .headRefOid)"
+          if [ "$head" != "$SHA" ]; then
+            echo "::notice::PR #$PR moved to $head while its checks ran, so this run approves nothing."
+            exit 0
+          fi
+          echo "green=true" >> "$GITHUB_OUTPUT"
+      # The approval names the commit checked, so a later push needs a new
+      # one. A PR the approver already approved at that commit is left alone.
+      # The approver's login comes from its token, so any machine user works.
+      - name: Approve the PR
+        if: ${{ steps.checks.outputs.green == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.APPROVER_TOKEN }}
+          SHA: ${{ steps.guard.outputs.sha }}
+        run: |
+          bot="$(gh api user --jq .login)"
+          reviews="repos/$GITHUB_REPOSITORY/pulls/$PR/reviews"
+          approved="$(gh api "$reviews" --paginate |
+            jq -rs --arg bot "$bot" --arg sha "$SHA" 'add | any(.user.login == $bot and .commit_id == $sha and .state == "APPROVED")')"
+          if [ "$approved" = true ]; then
+            echo "PR #$PR is already approved at $SHA."
+            exit 0
+          fi
+          gh api -X POST "$reviews" -f event=APPROVE -f commit_id="$SHA" \
+            -f body="Approved: this PR changes only the release files, and its checks are green." > /dev/null
+          echo "Approved PR #$PR at $SHA."
