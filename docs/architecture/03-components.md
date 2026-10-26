@@ -9,6 +9,8 @@ C4Component
     title Cloud scripts and shared lanes
 
     Person(owner, "1 Owner")
+    System_Ext(asc, "8 App Store Connect API", "REST")
+    System_Ext(xcodegen, "7 XcodeGen 2.46.0", "Release zip")
 
     Container_Boundary(scripts, "2 Cloud scripts (ci_scripts)") {
         Component(clone, "3 Post clone", "sh", "ci_scripts/ci_post_clone.sh")
@@ -18,9 +20,6 @@ C4Component
     Container_Boundary(lanes, "5 Shared lanes (fastlane)") {
         Component(fastfile, "6 Lanes", "fastlane", "fastlane/Fastfile")
     }
-
-    System_Ext(xcodegen, "7 XcodeGen 2.46.0", "Release zip")
-    System_Ext(asc, "8 App Store Connect API", "REST")
 
     Rel(clone, xcodegen, "A")
     Rel(owner, fastfile, "B")
@@ -55,10 +54,10 @@ Numbers on nodes and letters on arrows match the callout table.
 | #   | Description | Why |
 | --- | --- | --- |
 | 1   | Same actor as the other views. | Runs a lane on a Mac. |
-| 2   | The cloud scripts container, from `ci_scripts`. | Its components split its sources. |
+| 2   | The cloud scripts, from `ci_scripts`. | Xcode Cloud runs them inside each app's build. |
 | 3   | `ci_scripts/ci_post_clone.sh` runs the app's `app_post_clone.sh`, then generates the project when `project.yml` exists. | One XcodeGen version for every run, per [0001](../requirements/0001-post-clone.md). |
 | 4   | `ci_scripts/ci_post_xcodebuild.sh` writes the merge's changelog entry after an archive. | Testers read what changed, per [0002](../requirements/0002-tester-notes.md). |
-| 5   | The shared lanes container, from `fastlane`. | Its components split its sources. |
+| 5   | The shared lanes, from `fastlane`. | Each app's fastlane imports them. |
 | 6   | `fastlane/Fastfile` holds the shared lanes and their App Store Connect helpers. | The app's lane file imports it at the pinned tag. |
 | 7   | The XcodeGen release zip on GitHub. | Checked by its SHA-256 before it runs. |
 | 8   | The App Store Connect REST API. | Builds, groups and cloud runs live there. |
