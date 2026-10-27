@@ -14,6 +14,10 @@ classDiagram
     <<abstract>> lanes
 
     lanes --> postClone : A
+
+    style postClone fill:#6d28d9,stroke:#4c1d95,color:#ffffff
+    style postBuild fill:#6d28d9,stroke:#4c1d95,color:#ffffff
+    style lanes fill:#6d28d9,stroke:#4c1d95,color:#ffffff
 ```
 
 ```mermaid
@@ -26,9 +30,13 @@ classDiagram
     class Child
     Parent <|-- Child : inherits
     Parent --> Child : uses
+
+    style Example fill:#6d28d9,stroke:#4c1d95,color:#ffffff
+    style Parent fill:#6d28d9,stroke:#4c1d95,color:#ffffff
+    style Child fill:#6d28d9,stroke:#4c1d95,color:#ffffff
 ```
 
-Numbers on classes and relationships match the callout table. The scripts and lanes are shell and Ruby, which no fitness language module reads, so each class is abstract.
+Numbers on classes and letters on relationships match the callout table. The scripts and lanes are shell and Ruby, which no fitness language module reads, so each class is abstract.
 
 | #   | Description | Why |
 | --- | --- | --- |

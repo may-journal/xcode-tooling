@@ -9,17 +9,21 @@ C4Container
     title xcode-tooling
 
     Person(owner, "1 Owner")
+    System_Ext(fastlaneRun, "2 An app's fastlane run", "Its lane file imports the shared lanes at the pinned tag")
+    System_Ext(cloudRun, "3 An app's Xcode Cloud run", "Its shim clones the pinned tag and runs the cloud scripts")
+    System_Ext(asc, "4 App Store Connect API", "REST")
+    System_Ext(xcodegen, "5 XcodeGen 2.46.0", "Release zip")
 
-    System(release, "2 One tagged release", "Cloud scripts and shared lanes, read in place by each app")
+    Rel(owner, fastlaneRun, "A")
+    Rel(fastlaneRun, asc, "B")
+    Rel(fastlaneRun, xcodegen, "C")
+    Rel(cloudRun, xcodegen, "D")
 
-    Container_Ext(shim, "3 App shim", "POSIX sh", "Clones the pinned tag on Xcode Cloud or a Mac")
-    Container_Ext(laneFile, "4 App lane file", "fastlane", "Imports the shared lanes at the same tag")
-    System_Ext(asc, "5 App Store Connect API", "REST")
-
-    Rel(shim, release, "A")
-    Rel(laneFile, release, "B")
-    Rel(release, asc, "C")
-    Rel(owner, laneFile, "D")
+    UpdateElementStyle(owner, $bgColor="#334155", $borderColor="#1e293b", $fontColor="#ffffff")
+    UpdateElementStyle(fastlaneRun, $bgColor="#64748b", $borderColor="#475569", $fontColor="#ffffff")
+    UpdateElementStyle(cloudRun, $bgColor="#64748b", $borderColor="#475569", $fontColor="#ffffff")
+    UpdateElementStyle(asc, $bgColor="#64748b", $borderColor="#475569", $fontColor="#ffffff")
+    UpdateElementStyle(xcodegen, $bgColor="#64748b", $borderColor="#475569", $fontColor="#ffffff")
 ```
 
 ```mermaid
@@ -27,20 +31,26 @@ C4Container
     title Legend
 
     Person(actor, "Person", "Owner who runs a lane")
-    System(unit, "System", "What this repo releases")
-    Container_Ext(outside, "External", "App file or API that calls in or is called")
+    System_Boundary(unit, "System boundary") {
+        Container(part, "Container", "Tech", "Runnable or deployable unit")
+    }
+    System_Ext(outside, "External", "App file or API that calls in or is called")
+
+    UpdateElementStyle(actor, $bgColor="#334155", $borderColor="#1e293b", $fontColor="#ffffff")
+    UpdateElementStyle(part, $bgColor="#0f766e", $borderColor="#115e59", $fontColor="#ffffff")
+    UpdateElementStyle(outside, $bgColor="#64748b", $borderColor="#475569", $fontColor="#ffffff")
 ```
 
-Numbers on nodes and arrows match the callout table. Nothing here builds or deploys on its own. Each app's shim and lane file run the release in place, so this view draws no container here.
+Numbers on nodes and letters on arrows match the callout table. This repo ships no container: its scripts and lanes run inside each app's runs, from the tag the app pins. [03-components.md](03-components.md) shows their files.
 
-| #   | Role | Why |
+| #   | Description | Why |
 | --- | --- | --- |
 | 1   | Same actor as the system context. | Runs lanes on a Mac. |
-| 2   | The cloud scripts and shared lanes at one tag. | Each app runs exactly the release it names. |
-| 3   | The shim each app commits, run by its two hook scripts. | Apple runs only committed scripts. |
-| 4   | The lane file each app owns, with its own lanes below the import. | fastlane's own way to share lanes. |
-| 5   | Builds, tester groups and Xcode Cloud runs. | The team's API key signs each call. |
-| A   | Clones the tag the app's version file names, and runs the script of the same name. | The app pins one release. |
-| B   | `import_from_git` at the same tag. | A Mac runs what the cloud runs. |
-| C   | Reads builds and groups, and starts a run on main. | Nothing here uploads a build. |
-| D   | Runs `fastlane archive` or a status lane. | A Mac proves a build without uploading it. |
+| 2   | `fastlane` in an app, on a Mac, with the shared lanes imported. | A Mac runs what the cloud runs. |
+| 3   | Xcode Cloud building an app, whose shim fetches the cloud scripts. | Each app runs exactly the release it names. |
+| 4   | Builds, tester groups and Xcode Cloud runs. | The team's API key signs each call. |
+| 5   | The XcodeGen release the post-clone script downloads. | One generator version for every app. |
+| A   | Runs `fastlane archive` or a status lane. | A Mac proves a build without uploading it. |
+| B   | The shared lanes read builds and groups, and start a run on main. | Nothing here uploads a build. |
+| C   | `archive` runs the post-clone script, which fetches XcodeGen. | Local and cloud projects match. |
+| D   | The post-clone script fetches XcodeGen unless that version is installed. | A fresh cloud machine has none. |
