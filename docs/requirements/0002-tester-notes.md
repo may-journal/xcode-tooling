@@ -1,7 +1,3 @@
----
-relatedConfigurations: ['../../.fitnessrc.json']
----
-
 # 0002 Tester Notes
 
 ## Why
@@ -15,8 +11,6 @@ archived app builds whose notes hold the merge's changelog entry, or none when t
 -
 
 archived app builds that run this release
-
-Source: `ci_scripts/ci_post_xcodebuild.sh:20`
 
 ## Requirements
 

@@ -1,7 +1,3 @@
----
-relatedConfigurations: ['../../.fitnessrc.json']
----
-
 # 0001 Post Clone
 
 ## Why
@@ -15,8 +11,6 @@ app cloud runs whose project comes from XcodeGen 2.46.0, or that fail naming the
 -
 
 app cloud runs that clone this release
-
-Source: `ci_scripts/ci_post_clone.sh:35`
 
 ## Requirements
 
