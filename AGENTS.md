@@ -1,7 +1,3 @@
----
-relatedConfigurations: ['.fitnessrc.json']
----
-
 # xcode-tooling
 
 Shared Xcode Cloud scripts and fastlane lanes, released by tag. Every Swift app in the org pins one release. See [README.md](README.md).

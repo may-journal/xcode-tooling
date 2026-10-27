@@ -1,7 +1,3 @@
----
-relatedConfigurations: ['.fitnessrc.json', 'release-please-config.json']
----
-
 # xcode-tooling
 
 Shared Xcode Cloud scripts and fastlane lanes for the may-journal Swift apps, released by tag. Each app pins one release, and a bump pull request moves the pin when a new tag lands.
