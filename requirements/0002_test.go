@@ -29,8 +29,8 @@ func Test0002_1(t *testing.T) {
 	notesAre(t, appCheckout(t, nil), archive, "")
 }
 
-// notesAre runs ci_post_xcodebuild.sh in app with env, then fails the test unless the notes
-// it wrote are want, or it wrote none when want is empty. It removes the notes after.
+// notesAre runs ci_post_xcodebuild.sh in app with env and fails unless the notes match want.
+// An empty want means it must write none, and the notes are removed after.
 func notesAre(t *testing.T, app, env, want string) {
 	t.Helper()
 	out, code := runScript(t, app, "ci_post_xcodebuild.sh", env)
