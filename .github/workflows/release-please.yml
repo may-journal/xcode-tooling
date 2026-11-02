@@ -114,6 +114,9 @@ jobs:
           else
             gh api -X POST "$refs" -f ref="refs/tags/$MAJOR" -f sha="$SHA" --silent
           fi
+      - name: Report the release outcome
+        if: always()
+        run: echo "Release Please finished with status ${{ job.status }}." >> "$GITHUB_STEP_SUMMARY"
 
   # The org ruleset needs one approval, which the automation App cannot give
   # its own PR, so this job mirrors fitness-runner's release-approve.yml inline.
@@ -239,3 +242,6 @@ jobs:
           gh api -X POST "$reviews" -f event=APPROVE -f commit_id="$SHA" \
             -f body="Approved: this PR changes only the release files, and its checks are green." > /dev/null
           echo "Approved PR #$PR at $SHA."
+      - name: Report the approval outcome
+        if: always()
+        run: echo "Approving release PR ${PR} finished with status ${{ job.status }}." >> "$GITHUB_STEP_SUMMARY"
