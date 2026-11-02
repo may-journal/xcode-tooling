@@ -1,6 +1,5 @@
-// Package requirements proves docs/requirements the way Xcode Cloud meets them: each test
-// builds an app checkout in a temporary folder and runs this repo's scripts from its root
-// with sh, as an app's shim does. It asserts only what that acceptance's Then promises.
+// Package requirements proves docs/requirements the way Xcode Cloud meets them.
+// Each test runs this repo's scripts with sh from a temporary app checkout's root.
 package requirements
 
 import (

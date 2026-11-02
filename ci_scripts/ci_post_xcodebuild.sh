@@ -1,15 +1,14 @@
 #!/bin/sh
-# Xcode Cloud runs this after each xcodebuild action. After an archive, it writes the merge's
-# changelog entry to TestFlight/WhatToTest.en-US.txt. Xcode Cloud uploads that file as the
-# build's What to Test notes, which TestFlight shows in its email and app. An app's
-# ci_scripts/ci_post_xcodebuild.sh hands its name to its shim, which clones this release and runs
-# this file from the app's root.
-#
-# Usage:   run by the app's shim; here, cd <app> && CI_ARCHIVE_PATH=x sh ci_scripts/ci_post_xcodebuild.sh
+# Xcode Cloud runs this after each xcodebuild action and, after an archive, writes the merge's
+# changelog entry to TestFlight/WhatToTest.en-US.txt.
+
+# Usage:   run by the app's shim; here, cd <app> && CI_ARCHIVE_PATH=x sh <this repo>/ci_scripts/ci_post_xcodebuild.sh.
+
 # Inputs:  the current folder, the app's root; CI_ARCHIVE_PATH, set on archive actions; the
 #          changelog/*.md entry the built commit added, else the last entry by name, else
 #          CHANGELOG.md. With none, it writes nothing.
-# Outputs: TestFlight/WhatToTest.en-US.txt, at most 4000 characters, TestFlight's limit
+
+# Outputs: TestFlight/WhatToTest.en-US.txt, at most 4000 characters, TestFlight's limit.
 set -eu
 
 # Build and test actions have no archive, so they get no notes.
