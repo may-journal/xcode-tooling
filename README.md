@@ -42,11 +42,16 @@ An app runs `ci_scripts/xcode-tooling.sh screenshots.sh` or `fastlane ios screen
 | `project`, `scheme`, `bundle`, `test` | What to build and which test suite to run |
 | `grant` | Privacy services to allow, so no system prompt covers a frame |
 | `requirement`, `output`, `background` | The scenes doc, the image folder, and the color behind each headline |
+| `jobs` | How many sizes run at once, two by default |
 | `watch` | Paths that count as an app change, beside the requirement doc |
 | `repo`, `branch`, `runsIssue`, `agent`, `trailer` | Where a watched capture publishes and notes each result |
 | `sizes` | Each `folder`, simulator `device`, final `width` and `height`, and optional `window`, `capture`, `screen` and `datedStatusBar` |
 
 A capture exits 75 while any simulator is booted, since one agent drives a simulator at a time. Sizes pick the newest runtime that supports their device. A size can shoot a window on a larger simulator: `capture` is that simulator's pixels, and `screen` is the corner the window fills. Two runs always differ by a few pixels, so a change under 0.02% of an image keeps the old file.
+
+## How the sizes run
+
+It builds once, then runs the sizes at once, each on its own simulator with its own shutter and raw folder. `jobs` in the config, or `SCREENSHOTS_JOBS`, sets how many run together, two by default. On an 18-core Mac, three or four at once ran no faster than one at a time, and test timing broke. A failed size fails the run after three tries of its own, and every simulator is deleted however the run ends.
 
 ## When a capture runs
 

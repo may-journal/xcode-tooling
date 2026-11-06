@@ -33,10 +33,25 @@ echo "$(basename "$0") $*" >>"$SHOTS_LOG"
 case "$*" in
 *"list devices booted"*) [ -z "$SHOTS_BOOTED" ] || echo "Phone (ID) (Booted)" ;;
 *"list -j runtimes"*) echo '{"runtimes":[{"isAvailable":true,"identifier":"rt","supportedDeviceTypes":[{"identifier":"com.apple.CoreSimulator.SimDeviceType.Phone"}]}]}' ;;
-*"list -j devices"*) if [ -f "$SHOTS_SIM" ]; then echo "{\"devices\":{\"rt\":[{\"name\":\"$(cat "$SHOTS_SIM")\",\"udid\":\"ID\"}]}}"; else echo '{"devices":{}}'; fi ;;
-*"simctl create"*) echo "$3" >"$SHOTS_SIM"; echo ID ;;
-*"simctl delete"*) rm -f "$SHOTS_SIM" ;;
-*"test-without-building"*) exit "$SHOTS_TEST_EXIT" ;;
+*"list -j devices"*)
+	for sim in "$SHOTS_SIM"/sim.*; do
+		[ -e "$sim" ] && printf '{"name":"%s","udid":"%s"}\n' "$(cat "$sim")" "$(basename "$sim")"
+	done | jq -s '{devices: {rt: .}}'
+	;;
+*"simctl create"*) sim=$(mktemp "$SHOTS_SIM/sim.XXXXXX"); echo "$3" >"$sim"; basename "$sim" ;;
+*"simctl delete"*) rm -f "$SHOTS_SIM/$3" ;;
+*"test-without-building"*)
+	sim=$(printf '%s' "$*" | sed 's/.*id=\(sim\.[^ ]*\).*/\1/')
+	if grep -q bad "$SHOTS_SIM/$sim"; then exit 65; fi
+	touch "$SHOTS_SIM/running.$$"
+	tries=0
+	while [ "$(ls "$SHOTS_SIM" | grep -c '^running\.')" -lt "${SHOTS_AT_ONCE:-1}" ]; do
+		tries=$((tries + 1))
+		[ "$tries" -lt 50 ] || exit 66
+		sleep 0.1
+	done
+	exit "$SHOTS_TEST_EXIT"
+	;;
 *swift*) cat "$4" ;;
 esac
 `
@@ -56,9 +71,11 @@ func runWithStandIns(t *testing.T, app, script string, env ...string) (string, i
 	}
 	logged := filepath.Join(bin, "calls")
 	mustDo(t, os.WriteFile(logged, nil, 0o644))
+	sims := filepath.Join(bin, "sims")
+	mustDo(t, os.Mkdir(sims, 0o755))
 	env = append(env,
 		fmt.Sprintf("PATH=%s:%s", bin, os.Getenv("PATH")), "SHOTS_LOG="+logged,
-		"SHOTS_SIM="+filepath.Join(bin, "sim"), "SCREENSHOTS_LOCK="+filepath.Join(bin, "lock"))
+		"SHOTS_SIM="+sims, "SCREENSHOTS_LOCK="+filepath.Join(bin, "lock"))
 	out, code := runScript(t, app, script, env...)
 	calls, err := os.ReadFile(logged)
 	mustDo(t, err)

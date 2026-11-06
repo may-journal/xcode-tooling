@@ -9,6 +9,7 @@ prefix=screenshots-$$
 data=.derivedData-screenshots
 raw=$root/.build/screenshots
 value() { jq -r "$1" "$config"; }
+jobs=${SCREENSHOTS_JOBS:-$(value '.jobs // 2')}
 lock=${SCREENSHOTS_LOCK:-$HOME/Library/Caches/$(value .label).lock}
 
 skip() {
@@ -64,9 +65,10 @@ delete_simulators() {
 	done
 }
 
-# shoots_once <folder> <device type> <window size or nothing>
+# shoots_once <folder> <device type> <window size or nothing>, in the size's own child.
 shoots_once() {
 	folder=$raw/$1
+	rm -rf "$raw/$1.xcresult"
 	type=com.apple.CoreSimulator.SimDeviceType.$2
 	mkdir -p "$folder"
 	udid=$(xcrun simctl create "$prefix-$1" "$type" "$(runtime_for "$type")")
@@ -86,10 +88,11 @@ shoots_once() {
 		TEST_RUNNER_SCREENSHOT_SHUTTER=$folder TEST_RUNNER_SCREENSHOT_WINDOW=$3 xcodebuild \
 		test-without-building -scheme "$(value .scheme)" -project "$(value .project)" \
 		-destination "id=$udid" -derivedDataPath $data -collect-test-diagnostics never \
-		-only-testing:"$(value .test)"
+		-resultBundlePath "$raw/$1.xcresult" -only-testing:"$(value .test)" >>"$raw/$1.log" 2>&1
 	result=$?
 	kill "$watcher" 2>/dev/null
-	delete_simulators
+	xcrun simctl shutdown "$udid" 2>/dev/null
+	xcrun simctl delete "$udid"
 	return $result
 }
 
@@ -99,7 +102,34 @@ shoot() {
 		shoots_once "$1" "$2" "$3" && return 0
 		rm -rf "${raw:?}/$1"
 	done
+	tail -n 20 "$raw/$1.log" >&2
 	return 1
+}
+
+# Waits for the running sizes, remembering any that failed.
+wait_for_sizes() {
+	for pid in $running; do
+		wait "$pid" || failed=1
+	done
+	running=
+}
+
+# Runs the sizes at once, at most $jobs together, each on its own simulator.
+shoot_sizes() {
+	running=
+	count=0
+	failed=0
+	while IFS="$(printf '\t')" read -r folder device window; do
+		[ "$window" != "-" ] || window=
+		shoot "$folder" "$device" "$window" &
+		running="$running $!"
+		count=$((count + 1))
+		if [ $((count % jobs)) = 0 ]; then
+			wait_for_sizes
+		fi
+	done <"$raw/sizes.tsv"
+	wait_for_sizes
+	return $failed
 }
 
 capture() {
@@ -111,10 +141,7 @@ capture() {
 	xcodebuild build-for-testing -scheme "$(value .scheme)" -project "$(value .project)" \
 		-destination 'generic/platform=iOS Simulator' -derivedDataPath $data -quiet
 	jq -r '.sizes[] | [.folder, .device, .window // "-"] | @tsv' "$config" >"$raw/sizes.tsv"
-	while IFS="$(printf '\t')" read -r folder device window; do
-		[ "$window" != "-" ] || window=
-		shoot "$folder" "$device" "$window"
-	done <"$raw/sizes.tsv"
+	shoot_sizes
 	xcrun swift "$tools/screenshots-compose.swift" "$config" "$raw/frames.tsv" "$raw" "$(value .output)"
 }
 
@@ -127,9 +154,15 @@ if [ "$booted" != 0 ]; then
 fi
 
 # The capture runs in a child, so this shell cleans up however it ended.
+stop_tree() {
+	for child in $(pgrep -P "$1"); do
+		(stop_tree "$child")
+	done
+	kill "$1" 2>/dev/null
+}
 (capture) &
 job=$!
-trap 'pkill -P $job; kill $job 2>/dev/null' INT TERM
+trap 'stop_tree $job' INT TERM
 wait $job
 result=$?
 rm -rf "$lock"
