@@ -10,14 +10,15 @@ data=.derivedData-screenshots
 raw=$root/.build/screenshots
 value() { jq -r "$1" "$config"; }
 jobs=${SCREENSHOTS_JOBS:-$(value '.jobs // 2')}
-lock=${SCREENSHOTS_LOCK:-$HOME/Library/Caches/$(value .label).lock}
+# One lock for every app, since one agent drives a simulator at a time.
+lock=${SCREENSHOTS_LOCK:-$HOME/Library/Caches/org.may-journal.screenshots.lock}
 
 skip() {
 	echo "screenshots: $1, skipping this run" >&2
 	exit 75
 }
 
-# One agent drives a simulator at a time, so a lock held by a live run skips this one.
+# A lock held by a live run skips this one.
 holds_lock() {
 	mkdir "$lock" 2>/dev/null && return 0
 	kill -0 "$(cat "$lock/pid" 2>/dev/null)" 2>/dev/null && skip "another capture holds the lock"
@@ -27,9 +28,9 @@ holds_lock() {
 # Writes one line per frame: its acceptance number, file name and headline, from the doc.
 frames() {
 	awk '
-		/^- [0-9]+\.[0-9]+$/ { split($2, id, "."); number = id[2] }
+		/^- [0-9]+\.[0-9]+$/ { split($2, id, "."); number = id[2]; name = "" }
 		/When I look at the / { name = $0; sub(/.*When I look at the /, "", name); name = tolower(name); gsub(/ /, "-", name) }
-		/Then .*"/ { split($0, words, "\""); printf "%d\t%02d-%s\t%s\n", number, number, name, words[2] }
+		/Then .*"/ && name != "" { split($0, words, "\""); printf "%d\t%02d-%s\t%s\n", number, number, name, words[2] }
 	' "$(value .requirement)" >"$raw/frames.tsv"
 	[ -s "$raw/frames.tsv" ] || {
 		echo "screenshots: $(value .requirement) names no frames" >&2
@@ -57,12 +58,30 @@ watches_shutter() {
 	done
 }
 
+# Deletes the simulators whose names match a pattern; the lock's holder may reap dead runs'.
 delete_simulators() {
-	xcrun simctl list -j devices | jq -r --arg prefix "$prefix-" \
-		'.devices[][] | select(.name | startswith($prefix)) | .udid' | while read -r udid; do
+	xcrun simctl list -j devices | jq -r --arg names "$1" \
+		'.devices[][] | select(.name | test($names)) | .udid' | while read -r udid; do
 		xcrun simctl shutdown "$udid" 2>/dev/null
 		xcrun simctl delete "$udid"
 	done
+}
+
+# Runs a command, stopping it after a number of seconds, so a hung simulator can't hold the lock.
+within() {
+	seconds=$1
+	shift
+	"$@" &
+	task=$!
+	(
+		sleep "$seconds"
+		kill "$task" 2>/dev/null
+	) >/dev/null 2>&1 &
+	timer=$!
+	wait "$task"
+	finished=$?
+	kill "$timer" 2>/dev/null
+	return $finished
 }
 
 # shoots_once <folder> <device type> <window size or nothing>, in the size's own child.
@@ -72,7 +91,7 @@ shoots_once() {
 	type=com.apple.CoreSimulator.SimDeviceType.$2
 	mkdir -p "$folder"
 	udid=$(xcrun simctl create "$prefix-$1" "$type" "$(runtime_for "$type")")
-	xcrun simctl bootstatus "$udid" -b >/dev/null
+	within 180 xcrun simctl bootstatus "$udid" -b >/dev/null
 	xcrun simctl status_bar "$udid" override --time 9:41 --dataNetwork wifi --wifiMode active \
 		--wifiBars 3 --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
 	xcrun simctl ui "$udid" appearance light
@@ -83,9 +102,9 @@ shoots_once() {
 	watcher=$!
 	# SwiftUI's render thread can run a test library's main-actor closure.
 	# These two settings stop Swift trapping on that during a capture.
-	TEST_RUNNER_SWIFT_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=legacy \
+	within 600 env TEST_RUNNER_SWIFT_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE=legacy \
 		TEST_RUNNER_SWIFT_UNEXPECTED_EXECUTOR_LOG_LEVEL=0 \
-		TEST_RUNNER_SCREENSHOT_SHUTTER=$folder TEST_RUNNER_SCREENSHOT_WINDOW=$3 xcodebuild \
+		TEST_RUNNER_SCREENSHOT_SHUTTER="$folder" TEST_RUNNER_SCREENSHOT_WINDOW="$3" xcodebuild \
 		test-without-building -scheme "$(value .scheme)" -project "$(value .project)" \
 		-destination "id=$udid" -derivedDataPath $data -collect-test-diagnostics never \
 		-resultBundlePath "$raw/$1.xcresult" -only-testing:"$(value .test)" >>"$raw/$1.log" 2>&1
@@ -137,7 +156,7 @@ capture() {
 	rm -rf "$raw"
 	mkdir -p "$raw"
 	frames
-	[ ! -f project.yml ] || xcodegen generate --quiet
+	sh "$tools/ci_post_clone.sh"
 	xcodebuild build-for-testing -scheme "$(value .scheme)" -project "$(value .project)" \
 		-destination 'generic/platform=iOS Simulator' -derivedDataPath $data -quiet
 	jq -r '.sizes[] | [.folder, .device, .window // "-"] | @tsv' "$config" >"$raw/sizes.tsv"
@@ -147,6 +166,7 @@ capture() {
 
 holds_lock
 echo $$ >"$lock/pid"
+delete_simulators '^screenshots-[0-9]+-'
 booted=$(xcrun simctl list devices booted | grep -c '(Booted)')
 if [ "$booted" != 0 ]; then
 	rm -rf "$lock"
@@ -165,6 +185,6 @@ job=$!
 trap 'stop_tree $job' INT TERM
 wait $job
 result=$?
+delete_simulators "^$prefix-"
 rm -rf "$lock"
-delete_simulators
 exit $result

@@ -31,7 +31,12 @@ const screenshotDoc = `- 0001.1
 const standIn = `#!/bin/sh
 echo "$(basename "$0") $*" >>"$SHOTS_LOG"
 case "$*" in
-*"list devices booted"*) [ -z "$SHOTS_BOOTED" ] || echo "Phone (ID) (Booted)" ;;
+*"list devices booted"*)
+	[ -z "$SHOTS_BOOTED" ] || echo "    Phone (ID) (Booted)"
+	for sim in "$SHOTS_SIM"/sim.*; do
+		[ -e "$sim" ] && echo "    $(cat "$sim") (ID) (Booted)"
+	done
+	;;
 *"list -j runtimes"*) echo '{"runtimes":[{"isAvailable":true,"identifier":"rt","supportedDeviceTypes":[{"identifier":"com.apple.CoreSimulator.SimDeviceType.Phone"}]}]}' ;;
 *"list -j devices"*)
 	for sim in "$SHOTS_SIM"/sim.*; do
@@ -65,6 +70,12 @@ func runCapture(t *testing.T, app string, env ...string) (string, int, string) {
 // runWithStandIns runs script in app with the stand-ins first on PATH.
 func runWithStandIns(t *testing.T, app, script string, env ...string) (string, int, string) {
 	t.Helper()
+	return runBeside(t, "", app, script, env...)
+}
+
+// runBeside is runWithStandIns with a simulator of this name already booted, if any.
+func runBeside(t *testing.T, leftover, app, script string, env ...string) (string, int, string) {
+	t.Helper()
 	bin := t.TempDir()
 	for _, name := range []string{"xcrun", "xcodebuild", "gh"} {
 		mustDo(t, os.WriteFile(filepath.Join(bin, name), []byte(standIn), 0o755))
@@ -73,6 +84,9 @@ func runWithStandIns(t *testing.T, app, script string, env ...string) (string, i
 	mustDo(t, os.WriteFile(logged, nil, 0o644))
 	sims := filepath.Join(bin, "sims")
 	mustDo(t, os.Mkdir(sims, 0o755))
+	if leftover != "" {
+		mustDo(t, os.WriteFile(filepath.Join(sims, "sim.left"), []byte(leftover), 0o644))
+	}
 	env = append(env,
 		fmt.Sprintf("PATH=%s:%s", bin, os.Getenv("PATH")), "SHOTS_LOG="+logged,
 		"SHOTS_SIM="+sims, "SCREENSHOTS_LOCK="+filepath.Join(bin, "lock"))
@@ -98,7 +112,8 @@ func newWatchedApp(t *testing.T) watchedApp {
 	}
 	origin := appCheckout(t, files)
 	captures := filepath.Join(t.TempDir(), "captures")
-	shim := "#!/bin/sh\necho \"$1\" >>\"$SHOTS_CAPTURES\"\n"
+	shim := "#!/bin/sh\necho \"$1\" >>\"$SHOTS_CAPTURES\"\n" +
+		"[ ! -e \"$SHOTS_CAPTURES.images\" ] || { mkdir -p shots; git rev-parse HEAD >shots/a; }\n"
 	mustDo(t, os.MkdirAll(filepath.Join(origin, "ci_scripts"), 0o755))
 	mustDo(t, os.WriteFile(filepath.Join(origin, "ci_scripts", "xcode-tooling.sh"), []byte(shim), 0o755))
 	gitIn(t, origin, "init", "-q", "-b", "main")

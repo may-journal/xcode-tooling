@@ -25,7 +25,7 @@ capture runs that start
 - 0003.3
   - Given Owner has an app whose test keeps failing
     - When a capture runs `screenshots.sh`
-      - Then it fails after three tries, and each simulator it made is deleted
+      - Then it fails after three tries and deletes each simulator it made
 - 0003.4
   - Given Owner has a merge to main that changes no watched path
     - When the agent polls `screenshots-watch.sh`

@@ -4,7 +4,8 @@
 set -u
 tools=$(cd "$(dirname "$0")" && pwd)
 
-if ! git diff --quiet HEAD --; then
+output=$(jq -r .output "${SCREENSHOTS_CONFIG:-fastlane/screenshots.json}")
+if [ -n "$(git status --porcelain -- . ":(exclude)$output")" ]; then
 	echo "screenshots-release: commit or stash first, so the images match the release commit" >&2
 	exit 1
 fi

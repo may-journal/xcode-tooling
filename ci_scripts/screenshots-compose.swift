@@ -188,9 +188,19 @@ let captures = URL(filePath: arguments[3])
 let output = URL(filePath: arguments[4])
 let tint = config.background
 let background = CGColor(srgbRed: tint[0], green: tint[1], blue: tint[2], alpha: 1)
+let files = FileManager.default
+// A folder or frame the app dropped goes too, so a release can't carry it.
+let kept = Set(config.sizes.map(\.folder))
+for folder in (try? files.contentsOfDirectory(atPath: output.path())) ?? [] where !kept.contains(folder) {
+  try files.removeItem(at: output.appending(path: folder))
+}
 for size in config.sizes {
   let folder = output.appending(path: size.folder)
-  try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+  try files.createDirectory(at: folder, withIntermediateDirectories: true)
+  let names = Set(frames.map { "\($0[1]).png" })
+  for file in try files.contentsOfDirectory(atPath: folder.path()) where !names.contains(file) {
+    try files.removeItem(at: folder.appending(path: file))
+  }
   for frame in frames {
     let capture = load(captures.appending(path: "\(size.folder)/\(frame[0]).png"))
     let shown = screen(in: capture, for: size, name: "\(size.folder)/\(frame[1])")

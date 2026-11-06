@@ -51,7 +51,7 @@ A capture exits 75 while any simulator is booted, since one agent drives a simul
 
 ## How the sizes run
 
-It builds once, then runs the sizes at once, each on its own simulator with its own shutter and raw folder. `jobs` in the config, or `SCREENSHOTS_JOBS`, sets how many run together, two by default. On an 18-core Mac, three or four at once ran no faster than one at a time, and test timing broke. A failed size fails the run after three tries of its own, and every simulator is deleted however the run ends.
+It builds once, then runs the sizes together, each with its own simulator, shutter and raw folder. `jobs` in the config, or `SCREENSHOTS_JOBS`, sets how many run together, two by default, since three or four ran no faster than one. A failed size fails the run after three tries. No simulator outlives a run, and a hung boot or test times out.
 
 ## When a capture runs
 

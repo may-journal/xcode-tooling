@@ -18,7 +18,7 @@ home=${SCREENSHOTS_STATE:-$HOME/Library/Application Support/$(value .label)}
 captured=$home/captured
 failed=$home/failed
 log=$HOME/Library/Logs/$(value .label)-capture.log
-mkdir -p "$home"
+mkdir -p "$home" "$(dirname "$log")"
 last=$(cat "$captured" 2>/dev/null)
 
 note() { gh issue comment "$(value .runsIssue)" --body "Screenshots, $day, \`${head%"${head#???????}"}\`: $1"; }
@@ -30,17 +30,26 @@ finish() {
 	exit 0
 }
 
+# Stops trying this commit; the last captured one stays, so the next change covers it.
+gives_up() {
+	echo "$head" >"$failed"
+	note "$1"
+	finish
+}
+
 [ "$head" != "$last" ] || exit 0
 [ "$head" != "$(cat "$failed" 2>/dev/null)" ] || exit 0
 if [ -n "$last" ]; then
 	# Word splitting is wanted: each watched path is its own argument, and none holds a space.
 	# shellcheck disable=SC2046
-	if git diff --quiet "$last" "$head" -- $(value '.requirement, .watch[]?'); then
+	if git diff --quiet "$last" "$head" -- $config ci_scripts/xcode-tooling.version \
+		$(value '.requirement, .watch[]?'); then
 		remember
 		exit 0
 	fi
 fi
-if xcrun simctl list devices booted | grep -q '(Booted)'; then
+# A leftover from a dead capture doesn't count: the capture reaps those itself.
+if xcrun simctl list devices booted | grep '(Booted)' | grep -qvE ' screenshots-[0-9]+-'; then
 	exit 0
 fi
 
@@ -54,19 +63,18 @@ cd "$tree" || exit 1
 ci_scripts/xcode-tooling.sh screenshots.sh >"$log" 2>&1
 result=$?
 [ "$result" != 75 ] || finish
-if [ "$result" != 0 ]; then
-	echo "$head" >"$failed"
-	note "the capture failed with exit $result. The log is \`$log\` on the Mac."
-	finish
-fi
-remember
+[ "$result" = 0 ] || gives_up "the capture failed with exit $result. The log is \`$log\` on the Mac."
 
 git add -A "$(value .output)"
 if git diff --cached --quiet; then
+	stale=$(gh pr list -R "$repo" --head "$branch" --json url --jq '.[0].url // ""')
+	[ -z "$stale" ] || gh pr close "$stale" --comment "This commit's images match \`main\`, so this refresh is stale."
+	remember
 	note "every image matches \`main\`, so nothing changed."
 	finish
 fi
 if [ -n "${SCREENSHOTS_DRY_RUN:-}" ]; then
+	remember
 	note "a dry run captured changed images and published nothing."
 	finish
 fi
@@ -85,12 +93,10 @@ ENTRY
 git add "$entry"
 old=$(git ls-remote origin "refs/heads/$branch" | cut -f1)
 git commit -q -m "chore(screenshots): refresh the App Store screenshots" -m "$(value .trailer)" || {
-	note "the hooks refused the refresh commit."
-	finish
+	gives_up "the hooks refused the refresh commit."
 }
 git push -q --force-with-lease="$branch:$old" origin "HEAD:$branch" || {
-	note "the push failed, so nothing was published."
-	finish
+	gives_up "the push failed, so nothing was published."
 }
 
 pr=$(gh pr list -R "$repo" --head "$branch" --json url --jq '.[0].url // ""')
@@ -112,8 +118,7 @@ The capture on $day drew different images. Agent: $(value .agent).
 [The screenshots requirement](https://github.com/$repo/blob/main/$(value .requirement)) needs no change.")
 fi
 if [ -z "$bug" ]; then
-	note "\`$branch\` is pushed, but no issue tracks it, so no pull request changed."
-	finish
+	gives_up "\`$branch\` is pushed, but no issue tracks it, so no pull request changed."
 fi
 body="> The App Store screenshots match the app again.
 
@@ -130,9 +135,7 @@ else
 	pr=$(gh pr create -R "$repo" --head "$branch" --body "$body" \
 		--title "chore(screenshots): refresh the App Store screenshots")
 fi
-if [ -n "$pr" ]; then
-	note "images changed, so the refresh is at $pr"
-else
-	note "\`$branch\` is pushed, but no pull request opened."
-fi
+[ -n "$pr" ] || gives_up "\`$branch\` is pushed, but no pull request opened."
+remember
+note "images changed, so the refresh is at $pr"
 finish
