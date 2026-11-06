@@ -11,6 +11,7 @@ C4Component
     Container_Boundary(scripts, "2 Cloud scripts (ci_scripts)") {
         Component(clone, "3 Post clone", "sh", "ci_scripts/ci_post_clone.sh")
         Component(notes, "4 Tester notes", "sh", "ci_scripts/ci_post_xcodebuild.sh")
+        Component(shots, "9 Screenshots", "sh, Swift", "ci_scripts/screenshots.sh ci_scripts/screenshots-compose.swift ci_scripts/screenshots-schedule.sh ci_scripts/screenshots-weekly.sh")
     }
 
     Container_Boundary(lanes, "5 Shared lanes (fastlane)") {
@@ -21,10 +22,12 @@ C4Component
     Rel(owner, fastfile, "B")
     Rel(fastfile, asc, "C")
     Rel(fastfile, clone, "D")
+    Rel(fastfile, shots, "E")
 
     UpdateElementStyle(owner, $bgColor="#334155", $borderColor="#1e293b", $fontColor="#ffffff")
     UpdateElementStyle(clone, $bgColor="#b45309", $borderColor="#92400e", $fontColor="#ffffff")
     UpdateElementStyle(notes, $bgColor="#b45309", $borderColor="#92400e", $fontColor="#ffffff")
+    UpdateElementStyle(shots, $bgColor="#b45309", $borderColor="#92400e", $fontColor="#ffffff")
     UpdateElementStyle(fastfile, $bgColor="#b45309", $borderColor="#92400e", $fontColor="#ffffff")
     UpdateElementStyle(xcodegen, $bgColor="#64748b", $borderColor="#475569", $fontColor="#ffffff")
     UpdateElementStyle(asc, $bgColor="#64748b", $borderColor="#475569", $fontColor="#ffffff")
@@ -57,7 +60,9 @@ Numbers on nodes and letters on arrows match the callout table.
 | 6   | `fastlane/Fastfile` holds the shared lanes and their App Store Connect helpers. | The app's lane file imports it at the pinned tag. |
 | 7   | The XcodeGen release zip on GitHub. | Checked by its SHA-256 before it runs. |
 | 8   | The App Store Connect REST API. | Builds, groups and cloud runs live there. |
+| 9   | `ci_scripts/screenshots.sh` and its compose and schedule scripts capture store images weekly. | One tool for every app, per [0003](../requirements/0003-screenshots.md). |
 | A   | Downloads XcodeGen unless that version is installed. | A fresh cloud machine has none. |
 | B   | Runs a lane through the app's lane file. | The app's Appfile and Gymfile name it. |
 | C   | Reads and starts runs with the team's key. | No lane uploads. |
 | D   | `archive` runs the app's post-clone hook, which reaches this script. | Local and cloud projects match. |
+| E   | `screenshots` runs the capture through the app's shim. | The app's pinned tag picks the script. |

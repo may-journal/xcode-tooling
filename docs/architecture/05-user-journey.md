@@ -35,10 +35,12 @@ flowchart TB
     clone[(2 Post clone generates the project<br/>Req 0001)]:::system
     mismatch[(3 A download failing its checksum stops the run<br/>Req 0001)]:::system
     notes[4 TestFlight notes hold the merge's entry<br/>Req 0002]:::screen
+    shots(5 Capture App Store screenshots<br/>Req 0003):::action
 
     owner --> clone
     clone --> mismatch
     clone --> notes
+    owner --> shots
 
     classDef persona fill:#eef2ff,stroke:#6366f1,color:#312e81,stroke-width:2px
     classDef screen fill:#f8fafc,stroke:#64748b,color:#1e293b,stroke-width:2px
@@ -54,3 +56,4 @@ Numbers match the callout table. Components: [03-components.md](03-components.md
 | 2   | The app's shim runs this release's post-clone script from the app's root. | System | One XcodeGen version, per [0001](../requirements/0001-post-clone.md). |
 | 3   | A download that fails its SHA-256 exits 1, naming the checksum. | System | No unverified binary runs, per 0001.1. |
 | 4   | After the archive, the What to Test notes. | Screen | Written per [0002](../requirements/0002-tester-notes.md). |
+| 5   | The `screenshots` lane captures each frame the app's doc names. | Action | One tool for every app, per [0003](../requirements/0003-screenshots.md). |
