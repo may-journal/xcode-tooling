@@ -133,6 +133,11 @@ platform :ios do
     Dir.chdir(repo_root) { sh("sh", "ci_scripts/xcode-tooling.sh", "screenshots.sh") }
   end
 
+  desc "Capture from the release commit; a release lane calls this before any upload"
+  lane :capture_for_release do
+    Dir.chdir(repo_root) { sh("sh", "ci_scripts/xcode-tooling.sh", "screenshots-release.sh") }
+  end
+
   desc "Archive Release on this Mac to prove it builds; nothing uploads. sign:false skips signing"
   lane :archive do |options|
     root = repo_root

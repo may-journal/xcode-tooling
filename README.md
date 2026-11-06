@@ -10,9 +10,10 @@ Shared Xcode Cloud scripts and fastlane lanes for the may-journal Swift apps, re
 | `ci_scripts/ci_post_xcodebuild.sh` | After each xcodebuild action | After an archive, writes the merge's changelog entry to `TestFlight/WhatToTest.en-US.txt` |
 | `ci_scripts/screenshots.sh` | On a Mac, by `screenshots` lane | Captures each store frame at each size, and deletes every simulator it made |
 | `ci_scripts/screenshots-compose.swift` | By `screenshots.sh` | Sets each headline above its screen at the exact store size |
-| `ci_scripts/screenshots-schedule.sh` | On a Mac, from the app's main checkout | Installs a weekly launchd agent; `SCREENSHOTS_REMOVE=1` takes it away |
-| `ci_scripts/screenshots-weekly.sh` | By that agent | Captures from `origin/main` and refreshes one pull request when images change |
-| `fastlane/Fastfile` | On a Mac, through the app's lane file | The `status`, `cloud_status`, `cloud_build`, `archive` and `screenshots` lanes. None uploads a build. |
+| `ci_scripts/screenshots-agent.sh` | On a Mac, from the app's main checkout | Installs a launchd agent that polls `main`; `SCREENSHOTS_REMOVE=1` takes it away |
+| `ci_scripts/screenshots-watch.sh` | By that agent | Captures once per commit that changes the app, and refreshes one pull request when images change |
+| `ci_scripts/screenshots-release.sh` | By `capture_for_release` | Captures from the release commit, and fails rather than let a release carry stale images |
+| `fastlane/Fastfile` | On a Mac, through the app's lane file | The `status`, `cloud_status`, `cloud_build`, `archive`, `screenshots` and `capture_for_release` lanes. None uploads a build. |
 
 Both scripts run from the app's root.
 
@@ -41,10 +42,15 @@ An app runs `ci_scripts/xcode-tooling.sh screenshots.sh` or `fastlane ios screen
 | `project`, `scheme`, `bundle`, `test` | What to build and which test suite to run |
 | `grant` | Privacy services to allow, so no system prompt covers a frame |
 | `requirement`, `output`, `background` | The scenes doc, the image folder, and the color behind each headline |
-| `repo`, `branch`, `runsIssue`, `agent`, `trailer` | Where the weekly run publishes and notes each result |
+| `watch` | Paths that count as an app change, beside the requirement doc |
+| `repo`, `branch`, `runsIssue`, `agent`, `trailer` | Where a watched capture publishes and notes each result |
 | `sizes` | Each `folder`, simulator `device`, final `width` and `height`, and optional `window`, `capture`, `screen` and `datedStatusBar` |
 
 A capture exits 75 while any simulator is booted, since one agent drives a simulator at a time. Sizes pick the newest runtime that supports their device. A size can shoot a window on a larger simulator: `capture` is that simulator's pixels, and `screen` is the corner the window fills. Two runs always differ by a few pixels, so a change under 0.02% of an image keeps the old file.
+
+## When a capture runs
+
+The agent polls `origin/main` every five minutes and exits at once unless a commit changed a watched path. It records the last captured commit, so each change is captured once and a skipped run retries on the next poll. A failed commit isn't retried, and the next change picks it up. A release lane calls `capture_for_release` first; a busy simulator or an unclean tree stops the release.
 
 ## Releases
 

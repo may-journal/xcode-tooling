@@ -2,7 +2,7 @@
 
 ## Why
 
-An app's owner gets its App Store screenshots from one tool. The app's requirement doc names each frame, and a capture never leaves a simulator behind.
+An app's owner gets its App Store screenshots from one tool, whenever the app changes and before each release. The app's requirement doc names each frame.
 
 ## Measurement
 
@@ -26,3 +26,23 @@ capture runs that start
   - Given Owner has an app whose test keeps failing
     - When a capture runs `screenshots.sh`
       - Then it fails after three tries and deletes every simulator it made
+- 0003.4
+  - Given Owner has a merge to main that changes no watched path
+    - When the agent polls `screenshots-watch.sh`
+      - Then it captures nothing
+- 0003.5
+  - Given Owner has a merge to main that changes a watched path
+    - When the agent polls `screenshots-watch.sh` twice
+      - Then it captures that commit once
+- 0003.6
+  - Given Owner has an app change and a booted simulator
+    - When the agent polls, then polls again once the simulator is gone
+      - Then the first poll captures nothing and the second captures the change
+- 0003.7
+  - Given Owner prepares a release while a simulator is booted
+    - When the release runs `screenshots-release.sh`
+      - Then it fails, so nothing uploads
+- 0003.8
+  - Given Owner prepares a release from a clean release commit
+    - When the release runs `screenshots-release.sh`
+      - Then the images come from that commit
