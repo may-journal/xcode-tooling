@@ -23,10 +23,10 @@ func sizedApp(t *testing.T, second string) string {
 
 func Test0004_1(t *testing.T) {
 	t.Parallel()
-	out, code, calls := runCapture(t, sizedApp(t, "tablet"), "SHOTS_BOOTED=", "SHOTS_TEST_EXIT=0", "SHOTS_AT_ONCE=2")
+	out, code, calls := runCapture(t, sizedApp(t, "tablet"), "SHOTS_BOOTED=", "SHOTS_TEST_EXIT=0", "SHOTS_AT_ONCE=2", "SCREENSHOTS_JOBS=2")
 	sees(t, out, code, 0)
-	if made := strings.Count(calls, "simctl create"); made != 2 {
-		t.Errorf("made %d simulators, want one per size, so neither size retried:\n%s", made, calls)
+	if made := strings.Count(calls, "simctl clone"); made != 2 {
+		t.Errorf("cloned %d simulators, want one per size, so neither size retried:\n%s", made, calls)
 	}
 }
 
@@ -36,9 +36,9 @@ func Test0004_2(t *testing.T) {
 	if code == 0 {
 		t.Errorf("a failing size exited 0:\n%s", calls)
 	}
-	made, gone := strings.Count(calls, "simctl create"), strings.Count(calls, "simctl delete")
-	if made != 4 || gone != 4 {
-		t.Errorf("made %d simulators and deleted %d, want 4 of each:\n%s", made, gone, calls)
+	made := strings.Count(calls, "simctl create") + strings.Count(calls, "simctl clone")
+	if gone := strings.Count(calls, "simctl delete"); made != 5 || gone != 5 {
+		t.Errorf("made %d simulators and deleted %d, want a template and 4 clones, each deleted:\n%s", made, gone, calls)
 	}
 }
 

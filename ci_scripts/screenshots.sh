@@ -9,7 +9,7 @@ prefix=screenshots-$$
 data=.derivedData-screenshots
 raw=$root/.build/screenshots
 value() { jq -r "$1" "$config"; }
-jobs=${SCREENSHOTS_JOBS:-$(value '.jobs // 2')}
+jobs=${SCREENSHOTS_JOBS:-$(value '.jobs // 1')}
 # One lock for every app, since one agent drives a simulator at a time.
 lock=${SCREENSHOTS_LOCK:-$HOME/Library/Caches/org.may-journal.screenshots.lock}
 
@@ -54,7 +54,7 @@ watches_shutter() {
 			xcrun simctl io "$1" screenshot --display=1 "${wants%.wants}.png" 2>/dev/null
 			mv "$wants" "${wants%.wants}.taken"
 		done
-		sleep 0.2
+		sleep 0.05
 	done
 }
 
@@ -84,13 +84,56 @@ within() {
 	return $finished
 }
 
+# A shutdown can cut a file write short, and no clone can copy the unreadable file it leaves.
+clears_cut_writes() {
+	xcrun simctl list -j devices | jq -r --arg udid "$1" \
+		'.devices[][] | select(.udid == $udid) | .dataPath' | while read -r path; do
+		find "$path" -name '*.sb-*' -delete
+	done
+}
+
+# Boots a device type once and leaves it shut down, since a clone skips the first boot's setup.
+# A first boot can crash too, so it gets three tries.
+makes_template() {
+	type=com.apple.CoreSimulator.SimDeviceType.$1
+	for attempt in 1 2 3; do
+		udid=$(xcrun simctl create "$prefix-template-$1" "$type" "$(runtime_for "$type")")
+		if within 180 xcrun simctl bootstatus "$udid" -b >/dev/null && xcrun simctl shutdown "$udid" &&
+			clears_cut_writes "$udid"; then
+			echo "$udid" >"$raw/$1.template"
+			return 0
+		fi
+		xcrun simctl shutdown "$udid" 2>/dev/null
+		xcrun simctl delete "$udid"
+	done
+	echo "screenshots: $1 never finished its first boot" >&2
+	return 1
+}
+
+# One template per device type, one first boot at a time, so they stay light beside the build.
+makes_templates() {
+	for device in $(cut -f 2 "$raw/sizes.tsv" | sort -u); do
+		makes_template "$device" || return 1
+	done
+}
+
+# clones_for <device type> <name>: prints a new simulator's id, one clone at a time.
+clones_for() {
+	until mkdir "$raw/cloning" 2>/dev/null; do
+		sleep 0.1
+	done
+	cloned=0
+	xcrun simctl clone "$(cat "$raw/$1.template")" "$2" || cloned=$?
+	rmdir "$raw/cloning"
+	return $cloned
+}
+
 # shoots_once <folder> <device type> <window size or nothing>, in the size's own child.
 shoots_once() {
 	folder=$raw/$1
 	rm -rf "$raw/$1.xcresult"
-	type=com.apple.CoreSimulator.SimDeviceType.$2
 	mkdir -p "$folder"
-	udid=$(xcrun simctl create "$prefix-$1" "$type" "$(runtime_for "$type")")
+	udid=$(clones_for "$2" "$prefix-$1") || return 1
 	within 180 xcrun simctl bootstatus "$udid" -b >/dev/null
 	xcrun simctl status_bar "$udid" override --time 9:41 --dataNetwork wifi --wifiMode active \
 		--wifiBars 3 --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
@@ -125,29 +168,32 @@ shoot() {
 	return 1
 }
 
-# Waits for the running sizes, remembering any that failed.
-wait_for_sizes() {
+# Runs the sizes on one queue, at most $jobs together, each on its own simulator.
+# Each size starts as soon as another hands back its slot on the slots pipe.
+shoot_sizes() {
+	mkfifo "$raw/slots"
+	exec 3<>"$raw/slots"
+	slot=0
+	while [ "$slot" -lt "$jobs" ]; do
+		echo >&3
+		slot=$((slot + 1))
+	done
+	running=
+	while IFS="$(printf '\t')" read -r folder device window; do
+		[ "$window" != "-" ] || window=
+		read -r _ <&3
+		(
+			shot=0
+			shoot "$folder" "$device" "$window" || shot=1
+			echo >&3
+			exit "$shot"
+		) &
+		running="$running $!"
+	done <"$raw/sizes.tsv"
+	failed=0
 	for pid in $running; do
 		wait "$pid" || failed=1
 	done
-	running=
-}
-
-# Runs the sizes at once, at most $jobs together, each on its own simulator.
-shoot_sizes() {
-	running=
-	count=0
-	failed=0
-	while IFS="$(printf '\t')" read -r folder device window; do
-		[ "$window" != "-" ] || window=
-		shoot "$folder" "$device" "$window" &
-		running="$running $!"
-		count=$((count + 1))
-		if [ $((count % jobs)) = 0 ]; then
-			wait_for_sizes
-		fi
-	done <"$raw/sizes.tsv"
-	wait_for_sizes
 	return $failed
 }
 
@@ -157,9 +203,17 @@ capture() {
 	mkdir -p "$raw"
 	frames
 	sh "$tools/ci_post_clone.sh"
-	xcodebuild build-for-testing -scheme "$(value .scheme)" -project "$(value .project)" \
-		-destination 'generic/platform=iOS Simulator' -derivedDataPath $data -quiet
 	jq -r '.sizes[] | [.folder, .device, .window // "-"] | @tsv' "$config" >"$raw/sizes.tsv"
+	# The first boots run beside the build, so a fresh build pays for them.
+	makes_templates &
+	templates=$!
+	xcodebuild build-for-testing -scheme "$(value .scheme)" -project "$(value .project)" \
+		-destination 'generic/platform=iOS Simulator' -derivedDataPath $data -quiet \
+		ARCHS=arm64 ONLY_ACTIVE_ARCH=YES || {
+		stop_tree "$templates"
+		return 1
+	}
+	wait "$templates"
 	shoot_sizes
 	xcrun swift "$tools/screenshots-compose.swift" "$config" "$raw/frames.tsv" "$raw" "$(value .output)"
 }

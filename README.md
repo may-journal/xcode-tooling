@@ -42,7 +42,7 @@ An app runs `ci_scripts/xcode-tooling.sh screenshots.sh` or `fastlane ios screen
 | `project`, `scheme`, `bundle`, `test` | What to build and which test suite to run |
 | `grant` | Privacy services to allow, so no system prompt covers a frame |
 | `requirement`, `output`, `background` | The scenes doc, the image folder, and the color behind each headline |
-| `jobs` | How many sizes run at once, two by default |
+| `jobs` | How many sizes run at once, one by default |
 | `watch` | Paths that count as an app change, beside the requirement doc |
 | `repo`, `branch`, `runsIssue`, `agent`, `trailer` | Where a watched capture publishes and notes each result |
 | `sizes` | Each `folder`, simulator `device`, final `width` and `height`, and optional `window`, `capture`, `screen` and `datedStatusBar` |
@@ -51,7 +51,9 @@ A capture exits 75 while any simulator is booted, since one agent drives a simul
 
 ## How the sizes run
 
-It builds once, then runs the sizes together, each with its own simulator, shutter and raw folder. `jobs` in the config, or `SCREENSHOTS_JOBS`, sets how many run together, two by default, since three or four ran no faster than one. A failed size fails the run after three tries. No simulator outlives a run, and a hung boot or test times out.
+It boots each device type once while it builds. The sizes then share one queue, each on its own clone, shutter and raw folder, and the next starts as a slot frees. `jobs` in the config, or `SCREENSHOTS_JOBS`, sets how many run together. One is the default, since two at once stall a phone keyboard.
+
+A failed size fails the run after three tries. No simulator outlives a run, and a hung boot or test times out.
 
 ## When a capture runs
 
