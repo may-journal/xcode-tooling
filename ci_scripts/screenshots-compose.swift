@@ -176,11 +176,16 @@ func change(from url: URL, to image: CGImage) -> Double {
 /// Writes the image unless it only moved a blinking cursor or some glass, as two runs always do.
 func save(_ image: CGImage, to url: URL) {
   guard change(from: url, to: image) >= keepsBelow else { return }
+  // A failing frame ends the process while others write, so each lands whole by a rename.
+  let partial = url.deletingLastPathComponent().appending(path: ".\(url.lastPathComponent).partial")
   guard
-    let file = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil)
+    let file = CGImageDestinationCreateWithURL(
+      partial as CFURL, UTType.png.identifier as CFString, 1, nil)
   else { fail("can't write \(url.path)") }
   CGImageDestinationAddImage(file, image, nil)
-  guard CGImageDestinationFinalize(file) else { fail("can't write \(url.path)") }
+  guard CGImageDestinationFinalize(file), rename(partial.path(), url.path()) == 0 else {
+    fail("can't write \(url.path)")
+  }
 }
 
 let arguments = CommandLine.arguments

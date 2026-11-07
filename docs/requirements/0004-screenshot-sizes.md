@@ -42,3 +42,7 @@ capture runs with more than one size
   - Given Owner has a capture whose publish fails
     - When the agent polls that commit again, then polls a later app change
       - Then it skips the commit, then captures the later change
+- 0004.8
+  - Given Owner sets jobs to zero or a word
+    - When a capture runs `screenshots.sh`
+      - Then it stops before it makes a simulator

@@ -10,8 +10,18 @@ data=.derivedData-screenshots
 raw=$root/.build/screenshots
 value() { jq -r "$1" "$config"; }
 jobs=${SCREENSHOTS_JOBS:-$(value '.jobs // 1')}
+# How long one clone may take before that try gives up.
+clone_seconds=${SCREENSHOTS_CLONE_SECONDS:-120}
 # One lock for every app, since one agent drives a simulator at a time.
 lock=${SCREENSHOTS_LOCK:-$HOME/Library/Caches/org.may-journal.screenshots.lock}
+
+# A run with no slot would wait forever, so a bad jobs value stops it at once.
+case $jobs in
+"" | *[!0-9]* | 0)
+	echo "screenshots: jobs must be a whole number above zero, not '$jobs'" >&2
+	exit 64
+	;;
+esac
 
 skip() {
 	echo "screenshots: $1, skipping this run" >&2
@@ -88,8 +98,10 @@ within() {
 clears_cut_writes() {
 	xcrun simctl list -j devices | jq -r --arg udid "$1" \
 		'.devices[][] | select(.udid == $udid) | .dataPath' | while read -r path; do
-		find "$path" -name '*.sb-*' -delete
+		find "$path" -name '*.sb-*' -delete 2>/dev/null
 	done
+	# A folder find cannot read holds no cut write, so it never costs a good first boot.
+	return 0
 }
 
 # Boots a device type once and leaves it shut down, since a clone skips the first boot's setup.
@@ -117,13 +129,14 @@ makes_templates() {
 	done
 }
 
-# clones_for <device type> <name>: prints a new simulator's id, one clone at a time.
+# clones_for <device type> <name> <log>: prints a new simulator's id, one clone at a time.
+# A clone that hangs gives up after $clone_seconds, so it never holds the others back.
 clones_for() {
 	until mkdir "$raw/cloning" 2>/dev/null; do
 		sleep 0.1
 	done
 	cloned=0
-	xcrun simctl clone "$(cat "$raw/$1.template")" "$2" || cloned=$?
+	within "$clone_seconds" xcrun simctl clone "$(cat "$raw/$1.template")" "$2" 2>>"$3" || cloned=$?
 	rmdir "$raw/cloning"
 	return $cloned
 }
@@ -133,7 +146,7 @@ shoots_once() {
 	folder=$raw/$1
 	rm -rf "$raw/$1.xcresult"
 	mkdir -p "$folder"
-	udid=$(clones_for "$2" "$prefix-$1") || return 1
+	udid=$(clones_for "$2" "$prefix-$1" "$raw/$1.log") || return 1
 	within 180 xcrun simctl bootstatus "$udid" -b >/dev/null
 	xcrun simctl status_bar "$udid" override --time 9:41 --dataNetwork wifi --wifiMode active \
 		--wifiBars 3 --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
@@ -209,7 +222,7 @@ capture() {
 	templates=$!
 	xcodebuild build-for-testing -scheme "$(value .scheme)" -project "$(value .project)" \
 		-destination 'generic/platform=iOS Simulator' -derivedDataPath $data -quiet \
-		ARCHS=arm64 ONLY_ACTIVE_ARCH=YES || {
+		ARCHS="$(uname -m)" || {
 		stop_tree "$templates"
 		return 1
 	}

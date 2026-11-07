@@ -2,7 +2,6 @@ package requirements
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"image"
 	"image/png"
@@ -14,24 +13,9 @@ import (
 	"testing"
 )
 
-// threeSizes is an app's config with sizes named second and third, on top of screenshotConfig's.
-func threeSizes(t *testing.T, second, third string) string {
-	t.Helper()
-	var config map[string]any
-	mustDo(t, json.Unmarshal([]byte(screenshotConfig), &config))
-	sizes := config["sizes"].([]any)
-	for _, name := range []string{second, third} {
-		sizes = append(sizes, map[string]any{"folder": name, "device": "Phone", "width": 10, "height": 20})
-	}
-	config["sizes"] = sizes
-	body, err := json.Marshal(config)
-	mustDo(t, err)
-	return string(body)
-}
-
 func Test0005_1(t *testing.T) {
 	t.Parallel()
-	out, code, calls := runCapture(t, sizedApp(t, "tablet"), "SHOTS_BOOTED=", "SHOTS_TEST_EXIT=0")
+	out, code, calls := shotsCapture(t, sizedApp(t, "tablet"), "SHOTS_BOOTED=", "SHOTS_TEST_EXIT=0")
 	sees(t, out, code, 0)
 	fresh, clones := strings.Count(calls, "simctl create"), strings.Count(calls, "simctl clone")
 	if fresh != 1 || clones != 2 {
@@ -41,18 +25,13 @@ func Test0005_1(t *testing.T) {
 
 func Test0005_2(t *testing.T) {
 	t.Parallel()
-	_, code, calls := runCapture(t, sizedApp(t, "tablet"), "SHOTS_BOOTED=", "SHOTS_TEST_EXIT=0", "SHOTS_BOOT_EXIT=1")
-	if code == 0 {
-		t.Errorf("a first boot that never finished exited 0:\n%s", calls)
-	}
-	if made, gone := strings.Count(calls, "simctl create"), strings.Count(calls, "simctl delete"); made != 3 || gone != 3 {
-		t.Errorf("made %d simulators and deleted %d, want 3 tries, each deleted:\n%s", made, gone, calls)
-	}
+	_, code, calls := shotsCapture(t, sizedApp(t, "tablet"), "SHOTS_BOOTED=", "SHOTS_TEST_EXIT=0", "SHOTS_BOOT_EXIT=1")
+	failsLeavingNone(t, code, calls, 3)
 }
 
 func Test0005_3(t *testing.T) {
 	t.Parallel()
-	out, code, calls := runCapture(t, shotApp(t), "SHOTS_BOOTED=", "SHOTS_TEST_EXIT=0", "SHOTS_CUT_WRITE=1")
+	out, code, calls := shotsCapture(t, shotApp(t), "SHOTS_BOOTED=", "SHOTS_TEST_EXIT=0", "SHOTS_CUT_WRITE=1")
 	sees(t, out, code, 0)
 	if made := strings.Count(calls, "simctl clone"); made != 1 {
 		t.Errorf("cloned %d times, want the first clone to start the size:\n%s", made, calls)
@@ -61,25 +40,16 @@ func Test0005_3(t *testing.T) {
 
 func Test0005_7(t *testing.T) {
 	t.Parallel()
-	_, code, calls := runCapture(t, shotApp(t), "SHOTS_BOOTED=", "SHOTS_TEST_EXIT=0", "SHOTS_CLONE_EXIT=22")
-	if code == 0 {
-		t.Errorf("a device that can't be cloned exited 0:\n%s", calls)
-	}
-	if tries := strings.Count(calls, "simctl clone"); tries != 3 {
-		t.Errorf("tried to clone %d times, want 3:\n%s", tries, calls)
-	}
-	if made, gone := strings.Count(calls, "simctl create"), strings.Count(calls, "simctl delete"); made != 1 || gone != 1 {
-		t.Errorf("made %d simulators and deleted %d, want the template, deleted:\n%s", made, gone, calls)
-	}
+	failsEachClone(t, "SHOTS_CLONE_EXIT=22")
 }
 
 func Test0005_4(t *testing.T) {
 	t.Parallel()
 	app := appCheckout(t, map[string]string{
-		"fastlane/screenshots.json":       threeSizes(t, "slow", "last"),
+		"fastlane/screenshots.json":       moreSizes("slow", "last"),
 		"docs/requirements/0001-shots.md": screenshotDoc,
 	})
-	out, code, calls := runCapture(t, app, "SHOTS_BOOTED=", "SHOTS_TEST_EXIT=0", "SCREENSHOTS_JOBS=2")
+	out, code, calls := shotsCapture(t, app, "SHOTS_BOOTED=", "SHOTS_TEST_EXIT=0", "SCREENSHOTS_JOBS=2")
 	sees(t, out, code, 0)
 	if made := strings.Count(calls, "simctl clone"); made != 3 {
 		t.Errorf("cloned %d simulators, want 3, so the slow size never waited out its try:\n%s", made, calls)
@@ -151,4 +121,25 @@ func Test0005_6(t *testing.T) {
 	writesCapture(t, root, 1)
 	out, code := composes(t, root, "1\t01-day\tSay what you saw.", "2\t02-editor\tYour words stay.")
 	sees(t, out, code, 1, "no capture at", "phone/2.png")
+}
+
+func Test0005_8(t *testing.T) {
+	t.Parallel()
+	failsEachClone(t, "SHOTS_CLONE_HANG=1", "SCREENSHOTS_CLONE_SECONDS=1")
+}
+
+// failsEachClone runs a capture whose clones fail as env says. It wants the run to fail after
+// three tries, with only the template made and deleted.
+func failsEachClone(t *testing.T, env ...string) {
+	t.Helper()
+	_, code, calls := shotsCapture(t, shotApp(t), append([]string{"SHOTS_BOOTED=", "SHOTS_TEST_EXIT=0"}, env...)...)
+	if code == 0 {
+		t.Errorf("a capture whose clones fail exited 0:\n%s", calls)
+	}
+	if tries := strings.Count(calls, "simctl clone"); tries != 3 {
+		t.Errorf("tried to clone %d times, want 3:\n%s", tries, calls)
+	}
+	if made, gone := strings.Count(calls, "simctl create"), strings.Count(calls, "simctl delete"); made != 1 || gone != 1 {
+		t.Errorf("made %d simulators and deleted %d, want the template, deleted:\n%s", made, gone, calls)
+	}
 }

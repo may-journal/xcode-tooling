@@ -42,3 +42,7 @@ capture runs that start
   - Given Owner has a device that can't be cloned
     - When a capture runs `screenshots.sh`
       - Then it fails after three tries with no simulator left behind
+- 0005.8
+  - Given Owner has a device whose clone never finishes
+    - When a capture runs `screenshots.sh`
+      - Then each try gives up after its bound and the run fails
