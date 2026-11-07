@@ -35,7 +35,7 @@ flowchart TB
     clone[(2 Post clone generates the project<br/>Req 0001)]:::system
     mismatch[(3 A download failing its checksum stops the run<br/>Req 0001)]:::system
     notes[4 TestFlight notes hold the merge's entry<br/>Req 0002]:::screen
-    shots(5 Capture App Store screenshots on each app change and release<br/>Req 0003, 0004):::action
+    shots(5 Capture App Store screenshots on each app change and release<br/>Req 0003, 0004, 0005):::action
 
     owner --> clone
     clone --> mismatch

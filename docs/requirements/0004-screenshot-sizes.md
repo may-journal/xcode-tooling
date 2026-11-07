@@ -2,7 +2,7 @@
 
 ## Why
 
-An app's owner waits for one size, not all of them in turn, and one bad size can't pass or leak a simulator.
+An app's owner can run sizes side by side, and one bad size can't pass or leak a simulator or clone.
 
 ## Measurement
 
@@ -15,7 +15,7 @@ capture runs with more than one size
 ## Requirements
 
 - 0004.1
-  - Given Owner has an app with two sizes
+  - Given Owner has an app with two sizes set to run two at once
     - When the sizes start
       - Then both run at the same time
 - 0004.2
@@ -42,3 +42,7 @@ capture runs with more than one size
   - Given Owner has a capture whose publish fails
     - When the agent polls that commit again, then polls a later app change
       - Then it skips the commit, then captures the later change
+- 0004.8
+  - Given Owner sets jobs to zero or a word
+    - When a capture runs `screenshots.sh`
+      - Then it stops before it makes a simulator

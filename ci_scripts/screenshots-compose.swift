@@ -160,10 +160,15 @@ func change(from url: URL, to image: CGImage) -> Double {
   else { return 1 }
   let before = pixels(of: old)
   let after = pixels(of: image)
+  if before == after { return 0 }
   var changed = 0
-  for pixel in stride(from: 0, to: before.count, by: 4) {
-    let isSame = (0..<3).allSatisfy { abs(Int(before[pixel + $0]) - Int(after[pixel + $0])) < 12 }
-    if !isSame { changed += 1 }
+  before.withUnsafeBufferPointer { old in
+    after.withUnsafeBufferPointer { new in
+      for pixel in stride(from: 0, to: old.count, by: 4) {
+        let differs = (0..<3).contains { abs(Int(old[pixel + $0]) - Int(new[pixel + $0])) >= 12 }
+        if differs { changed += 1 }
+      }
+    }
   }
   return Double(changed) / Double(before.count / 4)
 }
@@ -171,11 +176,16 @@ func change(from url: URL, to image: CGImage) -> Double {
 /// Writes the image unless it only moved a blinking cursor or some glass, as two runs always do.
 func save(_ image: CGImage, to url: URL) {
   guard change(from: url, to: image) >= keepsBelow else { return }
+  // A failing frame ends the process while others write, so each lands whole by a rename.
+  let partial = url.deletingLastPathComponent().appending(path: ".\(url.lastPathComponent).partial")
   guard
-    let file = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil)
+    let file = CGImageDestinationCreateWithURL(
+      partial as CFURL, UTType.png.identifier as CFString, 1, nil)
   else { fail("can't write \(url.path)") }
   CGImageDestinationAddImage(file, image, nil)
-  guard CGImageDestinationFinalize(file) else { fail("can't write \(url.path)") }
+  guard CGImageDestinationFinalize(file), rename(partial.path(), url.path()) == 0 else {
+    fail("can't write \(url.path)")
+  }
 }
 
 let arguments = CommandLine.arguments
@@ -194,6 +204,13 @@ let kept = Set(config.sizes.map(\.folder))
 for folder in (try? files.contentsOfDirectory(atPath: output.path())) ?? [] where !kept.contains(folder) {
   try files.removeItem(at: output.appending(path: folder))
 }
+/// One frame of one size, and the folder it is written to.
+struct Job {
+  let size: Size
+  let folder: URL
+  let frame: [String]
+}
+var jobs: [Job] = []
 for size in config.sizes {
   let folder = output.appending(path: size.folder)
   try files.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -201,10 +218,15 @@ for size in config.sizes {
   for file in try files.contentsOfDirectory(atPath: folder.path()) where !names.contains(file) {
     try files.removeItem(at: folder.appending(path: file))
   }
-  for frame in frames {
-    let capture = load(captures.appending(path: "\(size.folder)/\(frame[0]).png"))
-    let shown = screen(in: capture, for: size, name: "\(size.folder)/\(frame[1])")
-    let image = compose(shown, headline: frame[2], size: size, background: background)
-    save(image, to: folder.appending(path: "\(frame[1]).png"))
-  }
+  for frame in frames { jobs.append(Job(size: size, folder: folder, frame: frame)) }
+}
+// Every frame of every size stands alone, so they run across the cores at once.
+let queue = jobs
+DispatchQueue.concurrentPerform(iterations: queue.count) { index in
+  let job = queue[index]
+  let frame = job.frame
+  let capture = load(captures.appending(path: "\(job.size.folder)/\(frame[0]).png"))
+  let shown = screen(in: capture, for: job.size, name: "\(job.size.folder)/\(frame[1])")
+  let image = compose(shown, headline: frame[2], size: job.size, background: background)
+  save(image, to: job.folder.appending(path: "\(frame[1]).png"))
 }

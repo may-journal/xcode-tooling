@@ -2,7 +2,7 @@
 
 ## Why
 
-An app's owner gets its App Store screenshots from one tool, whenever the app changes and before each release. The app's requirement doc names each frame.
+An app's owner gets its App Store screenshots from one tool, whenever the app changes and before each release. The app's requirement doc names each frame, and each try runs on its own clone.
 
 ## Measurement
 

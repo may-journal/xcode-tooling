@@ -40,14 +40,29 @@ case "$*" in
 *"list -j runtimes"*) echo '{"runtimes":[{"isAvailable":true,"identifier":"rt","supportedDeviceTypes":[{"identifier":"com.apple.CoreSimulator.SimDeviceType.Phone"}]}]}' ;;
 *"list -j devices"*)
 	for sim in "$SHOTS_SIM"/sim.*; do
-		[ -e "$sim" ] && printf '{"name":"%s","udid":"%s"}\n' "$(cat "$sim")" "$(basename "$sim")"
+		[ -e "$sim" ] && printf '{"name":"%s","udid":"%s","dataPath":"%s"}\n' "$(cat "$sim")" "$(basename "$sim")" "$SHOTS_SIM/data.$(basename "$sim")"
 	done | jq -s '{devices: {rt: .}}'
 	;;
-*"simctl create"*) sim=$(mktemp "$SHOTS_SIM/sim.XXXXXX"); echo "$3" >"$sim"; basename "$sim" ;;
+*"simctl create"*) sim=$(mktemp "$SHOTS_SIM/sim.XXXXXX"); echo "$3" >"$sim"; mkdir "$SHOTS_SIM/data.$(basename "$sim")"; basename "$sim" ;;
+*"simctl shutdown"*) [ -z "$SHOTS_CUT_WRITE" ] || [ ! -d "$SHOTS_SIM/data.$3" ] || touch "$SHOTS_SIM/data.$3/plist.sb-1" ;;
+*"simctl clone"*)
+	[ -z "${SHOTS_CLONE_EXIT:-}" ] || exit "$SHOTS_CLONE_EXIT"
+	[ -z "$(ls "$SHOTS_SIM/data.$3")" ] || exit 22
+	sim=$(mktemp "$SHOTS_SIM/sim.XXXXXX"); echo "$4" >"$sim"; mkdir "$SHOTS_SIM/data.$(basename "$sim")"; basename "$sim"
+	;;
 *"simctl delete"*) rm -f "$SHOTS_SIM/$3" ;;
+*"bootstatus"*) exit "${SHOTS_BOOT_EXIT:-0}" ;;
 *"test-without-building"*)
 	sim=$(printf '%s' "$*" | sed 's/.*id=\(sim\.[^ ]*\).*/\1/')
 	if grep -q bad "$SHOTS_SIM/$sim"; then exit 65; fi
+	if grep -q slow "$SHOTS_SIM/$sim"; then
+		tries=0
+		until grep -q last "$SHOTS_SIM"/sim.* 2>/dev/null; do
+			tries=$((tries + 1))
+			[ "$tries" -lt 50 ] || exit 66
+			sleep 0.1
+		done
+	fi
 	touch "$SHOTS_SIM/running.$$"
 	tries=0
 	while [ "$(ls "$SHOTS_SIM" | grep -c '^running\.')" -lt "${SHOTS_AT_ONCE:-1}" ]; do
@@ -199,8 +214,9 @@ func Test0003_3(t *testing.T) {
 	if code == 0 {
 		t.Errorf("a failing test exited 0:\n%s", calls)
 	}
-	if made, gone := strings.Count(calls, "simctl create"), strings.Count(calls, "simctl delete"); made != 3 || gone != 3 {
-		t.Errorf("made %d simulators and deleted %d, want 3 of each:\n%s", made, gone, calls)
+	made := strings.Count(calls, "simctl create") + strings.Count(calls, "simctl clone")
+	if gone := strings.Count(calls, "simctl delete"); made != 4 || gone != 4 {
+		t.Errorf("made %d simulators and deleted %d, want a template and 3 tries, each deleted:\n%s", made, gone, calls)
 	}
 }
 
