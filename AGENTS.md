@@ -1,6 +1,6 @@
 # xcode-tooling
 
-Shared Xcode Cloud scripts and fastlane lanes, released by tag. Every Swift app in the org pins one release. See [README.md](README.md).
+Shared Xcode Cloud scripts and fastlane lanes, released by tag. Every Swift app in the org follows the moving major tag `v1`. See [README.md](README.md).
 
 ## Rules
 

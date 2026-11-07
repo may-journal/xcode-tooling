@@ -1,6 +1,6 @@
 # xcode-tooling
 
-Shared Xcode Cloud scripts and fastlane lanes for the may-journal Swift apps, released by tag. Each app pins one release, and a bump pull request moves the pin when a new tag lands.
+Shared Xcode Cloud scripts and fastlane lanes for the may-journal Swift apps, released by tag. Each app follows the moving major tag `v1`, so it runs the newest 1.x release with no pull request.
 
 ## What it holds
 
@@ -23,12 +23,12 @@ Xcode Cloud runs only scripts an app commits, so each app holds a small shim:
 
 | App file | Holds |
 | --- | --- |
-| `ci_scripts/xcode-tooling.version` | One line: the tag the app runs, such as `v1.0.0` |
+| `ci_scripts/xcode-tooling.version` | One line: the tag the app runs, `v1` |
 | `ci_scripts/xcode-tooling.sh` | The shim. It clones that tag with `git clone --depth 1 --branch` and runs the hook script it is given. A missing tag fails the build, naming it. |
 | `ci_scripts/ci_post_clone.sh`, `ci_scripts/ci_post_xcodebuild.sh` | Two-line hooks that run the shim with their own name |
 | `fastlane/Fastfile` | `import_from_git` of this repo's `fastlane/Fastfile` at the same tag, then the app's own lanes |
 
-Org tooling seeds these files in each app, and Renovate bumps the version file when a release lands. This repo is public because an Xcode Cloud script has no token to clone a private repo.
+Org tooling seeds these files in each app. Both the shim and the lane file clone afresh on each run, so a moved `v1` reaches the app on its next build. This repo is public because an Xcode Cloud script has no token to clone a private repo.
 
 ## App Store screenshots
 
@@ -61,7 +61,9 @@ The agent polls `origin/main` every five minutes and exits at once unless a comm
 
 ## Releases
 
-Release Please keeps a release pull request open from the conventional commits on main. Merging it tags `vX.Y.Z` and moves `vX`. A `fix` makes a patch, a `feat` a minor release, and a breaking change a major one.
+Release Please keeps a release pull request open from the conventional commits on main. Merging it tags `vX.Y.Z`, and the `Move the major version tag` step of [release-please.yml](.github/workflows/release-please.yml#L104) points `vX` at the same commit. So `v1` always names the newest 1.x release. A `fix` makes a patch, a `feat` a minor release, and a breaking change a major one.
+
+A major release makes a new tag such as `v2`, which no app follows until its version line names it.
 
 ## Development
 
