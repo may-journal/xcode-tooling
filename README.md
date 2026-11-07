@@ -23,7 +23,7 @@ Xcode Cloud runs only scripts an app commits, so each app holds a small shim:
 
 | App file | Holds |
 | --- | --- |
-| `ci_scripts/xcode-tooling.version` | One line: the tag the app runs, `v1` |
+| `ci_scripts/xcode-tooling.version` | One line: the major tag the app follows, such as `v1` |
 | `ci_scripts/xcode-tooling.sh` | The shim. It clones that tag with `git clone --depth 1 --branch` and runs the hook script it is given. A missing tag fails the build, naming it. |
 | `ci_scripts/ci_post_clone.sh`, `ci_scripts/ci_post_xcodebuild.sh` | Two-line hooks that run the shim with their own name |
 | `fastlane/Fastfile` | `import_from_git` of this repo's `fastlane/Fastfile` at the same tag, then the app's own lanes |
@@ -61,9 +61,11 @@ The agent polls `origin/main` every five minutes and exits at once unless a comm
 
 ## Releases
 
-Release Please keeps a release pull request open from the conventional commits on main. Merging it tags `vX.Y.Z`, and the `Move the major version tag` step of [release-please.yml](.github/workflows/release-please.yml#L104) points `vX` at the same commit. So `v1` always names the newest 1.x release. A `fix` makes a patch, a `feat` a minor release, and a breaking change a major one.
+Release Please keeps a release pull request open from the conventional commits on main. Merging it tags `vX.Y.Z`, and the `Move the major version tag` step of [release-please.yml](.github/workflows/release-please.yml) points `vX` at the same commit. So `v1` always names the newest 1.x release. A `fix` makes a patch, a `feat` a minor release, and a breaking change a major one.
 
-A major release makes a new tag such as `v2`, which no app follows until its version line names it.
+A major release makes a new tag such as `v2`, which no app follows until its version line names it. To undo a bad release, point `v1` back at the release before it. Each hook clones the tag on its own, so a release that lands mid-build can split one build across two releases.
+
+The screenshot agent recaptures when an app's version file changes, and a moved `v1` changes no app file. So a release that changes the captures shows only at the app's next watched change.
 
 ## Development
 

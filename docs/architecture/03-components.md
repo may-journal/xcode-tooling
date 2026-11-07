@@ -57,7 +57,7 @@ Numbers on nodes and letters on arrows match the callout table.
 | 3   | `ci_scripts/ci_post_clone.sh` runs the app's `app_post_clone.sh`, then generates the project when `project.yml` exists. | One XcodeGen version for every run, per [0001](../requirements/0001-post-clone.md). |
 | 4   | `ci_scripts/ci_post_xcodebuild.sh` writes the merge's changelog entry after an archive. | Testers read what changed, per [0002](../requirements/0002-tester-notes.md). |
 | 5   | The shared lanes, from `fastlane`. | Each app's fastlane imports them. |
-| 6   | `fastlane/Fastfile` holds the shared lanes and their App Store Connect helpers. | The app's lane file imports it at the pinned tag. |
+| 6   | `fastlane/Fastfile` holds the shared lanes and their App Store Connect helpers. | The app's lane file imports it at the tag the app names. |
 | 7   | The XcodeGen release zip on GitHub. | Checked by its SHA-256 before it runs. |
 | 8   | The App Store Connect REST API. | Builds, groups and cloud runs live there. |
 | 9   | `ci_scripts/screenshots.sh` and its compose, agent, watch and release scripts capture store images. | One tool for every app, per [0003](../requirements/0003-screenshots.md). |
@@ -65,4 +65,4 @@ Numbers on nodes and letters on arrows match the callout table.
 | B   | Runs a lane through the app's lane file. | The app's Appfile and Gymfile name it. |
 | C   | Reads and starts runs with the team's key. | No lane uploads. |
 | D   | `archive` runs the app's post-clone hook, which reaches this script. | Local and cloud projects match. |
-| E   | `screenshots` runs the capture through the app's shim. | The app's pinned tag picks the script. |
+| E   | `screenshots` runs the capture through the app's shim. | The tag the app names picks the script. |
