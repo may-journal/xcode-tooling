@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/may-journal/xcode-tooling/compare/v1.1.0...v1.2.0) (2026-11-07)
+
+
+### Features
+
+* **screenshots:** boot each device once and run sizes on a queue ([#26](https://github.com/may-journal/xcode-tooling/issues/26)) ([53711d2](https://github.com/may-journal/xcode-tooling/commit/53711d2a81cfe3bc9970ca71c5edf47f7971af0e))
+
 ## [1.1.0](https://github.com/may-journal/xcode-tooling/compare/v1.0.0...v1.1.0) (2026-11-06)
 
 
