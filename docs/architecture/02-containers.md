@@ -27,13 +27,9 @@ C4Container
     title Legend
 
     Person(actor, "Person", "Owner who runs a lane")
-    System_Boundary(unit, "System boundary") {
-        Container(part, "Container", "Tech", "Runnable or deployable unit")
-    }
     System_Ext(outside, "External", "App file or API that calls in or is called")
 
     UpdateElementStyle(actor, $bgColor="#334155", $borderColor="#1e293b", $fontColor="#ffffff")
-    UpdateElementStyle(part, $bgColor="#0f766e", $borderColor="#115e59", $fontColor="#ffffff")
     UpdateElementStyle(outside, $bgColor="#64748b", $borderColor="#475569", $fontColor="#ffffff")
 ```
 
