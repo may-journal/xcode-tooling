@@ -3,5 +3,8 @@
     "maxGrade": 15,
     "maxLix": 50
   },
-  "proseBudget": {}
+  "proseBudget": {},
+  "checkVersions": {
+    "*": "v1"
+  }
 }
