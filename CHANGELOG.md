@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/may-journal/xcode-tooling/compare/v1.2.1...v1.3.0) (2026-11-23)
+
+
+### Features
+
+* **screenshots:** recapture when the tooling tag moves ([#43](https://github.com/may-journal/xcode-tooling/issues/43)) ([9ab58d9](https://github.com/may-journal/xcode-tooling/commit/9ab58d909581a72e87f730e2772b8ef8fb6fb183))
+
 ## [1.2.1](https://github.com/may-journal/xcode-tooling/compare/v1.2.0...v1.2.1) (2026-11-23)
 
 
