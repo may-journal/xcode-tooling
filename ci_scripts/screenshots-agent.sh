@@ -15,7 +15,7 @@ if [ -n "${SCREENSHOTS_REMOVE:-}" ]; then
 	exit 0
 fi
 
-mkdir -p "$home"
+mkdir -p "$home" "$(dirname "$plist")"
 cp "$tools/screenshots-watch.sh" "$home/screenshots-watch.sh"
 cat >"$plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
