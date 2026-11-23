@@ -55,6 +55,8 @@ It boots each device type once while it builds. The sizes then share one queue, 
 
 A failed size fails the run after three tries. No simulator outlives a run, and a hung boot, clone or test times out. `SCREENSHOTS_CLONE_SECONDS` bounds one clone, 120 by default.
 
+A capture that can't start names what is missing before it makes a simulator. It exits 69 without `jq`, 66 without the config, and 78 when the config isn't JSON or lacks a needed setting.
+
 ## When a capture runs
 
 The agent polls `origin/main` every five minutes and exits at once unless a commit changed a watched path. It records the last captured commit, so each change is captured once and a skipped run retries on the next poll. A failed commit isn't retried, and the next change picks it up. A release lane calls `capture_for_release` first; a busy simulator or an unclean tree stops the release.
