@@ -41,6 +41,9 @@ flowchart TB
     clone --> mismatch
     clone --> notes
     owner --> shots
+    install(6 Install the screenshot agent on a Mac<br/>Req 0009):::action
+    owner --> install
+    install --> shots
 
     classDef persona fill:#eef2ff,stroke:#6366f1,color:#312e81,stroke-width:2px
     classDef screen fill:#f8fafc,stroke:#64748b,color:#1e293b,stroke-width:2px
@@ -57,3 +60,4 @@ Numbers match the callout table. Components: [03-components.md](03-components.md
 | 3   | A download that fails its SHA-256 exits 1, naming the checksum. | System | No unverified binary runs, per 0001.1. |
 | 4   | After the archive, the What to Test notes. | Screen | Written per [0002](../requirements/0002-tester-notes.md). |
 | 5   | The `screenshots` lane captures each frame the app's doc names. | Action | One tool for every app, per [0003](../requirements/0003-screenshots.md). |
+| 6   | `screenshots-agent.sh` loads a launchd job that polls `main` for app changes. | Action | One command per Mac, per [0009](../requirements/0009-screenshot-agent.md). |
