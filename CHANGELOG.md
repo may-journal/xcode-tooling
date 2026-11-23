@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/may-journal/xcode-tooling/compare/v1.3.0...v1.3.1) (2026-11-23)
+
+
+### Bug Fixes
+
+* **screenshots:** leave no timer behind when a capture ends ([#45](https://github.com/may-journal/xcode-tooling/issues/45)) ([e785086](https://github.com/may-journal/xcode-tooling/commit/e785086b85177dfeee1955e7bcee8f09177e9ca8))
+
 ## [1.3.0](https://github.com/may-journal/xcode-tooling/compare/v1.2.1...v1.3.0) (2026-11-23)
 
 
