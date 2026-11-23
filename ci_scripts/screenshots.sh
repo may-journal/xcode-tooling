@@ -97,14 +97,23 @@ within() {
 	shift
 	"$@" &
 	task=$!
+	# Stopping the timer stops its sleep too, so no timer outlives the step it bounds.
 	(
-		sleep "$seconds"
+		nap=
+		stopped=
+		trap 'stopped=1; [ -z "$nap" ] || { kill "$nap" 2>/dev/null; wait "$nap"; exit; }' TERM
+		sleep "$seconds" &
+		nap=$!
+		# A stop that came before the sleep had a name is honored here.
+		[ -z "$stopped" ] || { kill "$nap" 2>/dev/null; exit; }
+		wait "$nap"
 		kill "$task" 2>/dev/null
 	) >/dev/null 2>&1 &
 	timer=$!
 	wait "$task"
 	finished=$?
 	kill "$timer" 2>/dev/null
+	wait "$timer" 2>/dev/null
 	return $finished
 }
 
