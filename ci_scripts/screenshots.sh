@@ -9,6 +9,20 @@ prefix=screenshots-$$
 data=.derivedData-screenshots
 raw=$root/.build/screenshots
 value() { jq -r "$1" "$config"; }
+
+# A run that cannot start says what is missing, before it takes the lock or makes a simulator.
+stops() {
+	echo "screenshots: $2" >&2
+	exit "$1"
+}
+command -v jq >/dev/null 2>&1 || stops 69 "jq is not installed"
+[ -f "$config" ] || stops 66 "no config at $config"
+jq -e . "$config" >/dev/null 2>&1 || stops 78 "$config is not valid JSON"
+for key in project scheme test requirement output; do
+	[ -n "$(value ".$key // empty" 2>/dev/null)" ] || stops 78 "$config sets no .$key"
+done
+[ "$(value '.sizes | length' 2>/dev/null)" -gt 0 ] 2>/dev/null || stops 78 "$config sets no .sizes"
+
 jobs=${SCREENSHOTS_JOBS:-$(value '.jobs // 1')}
 # How long one clone may take before that try gives up.
 clone_seconds=${SCREENSHOTS_CLONE_SECONDS:-120}
