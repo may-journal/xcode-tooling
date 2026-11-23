@@ -20,9 +20,28 @@ failed=$home/failed
 log=$HOME/Library/Logs/$(value .label)-capture.log
 mkdir -p "$home" "$(dirname "$log")"
 last=$(cat "$captured" 2>/dev/null)
+# The commit the app's tooling tag names now, or nothing when the lookup fails.
+tooling_url=${XCODE_TOOLING_URL:-https://github.com/may-journal/xcode-tooling.git}
+tag=$(git show "$head:ci_scripts/xcode-tooling.version" 2>/dev/null | head -n 1)
+tooling=
+# Only a release tag, such as v1 or v1.2.0, is worth a lookup.
+case $tag in
+v[0-9]*) tooling=$(git ls-remote "$tooling_url" "refs/tags/$tag" 2>/dev/null | cut -f1 | head -n 1) ;;
+esac
+known=$(cat "$home/tooling" 2>/dev/null)
+# A failed lookup or a first record is no move, so neither one starts a capture.
+moved=
+if [ -n "$tooling" ] && [ -n "$known" ] && [ "$tooling" != "$known" ]; then
+	moved=1
+fi
+[ -z "$tooling" ] || [ -n "$known" ] || echo "$tooling" >"$home/tooling"
 
 note() { gh issue comment "$(value .runsIssue)" --body "Screenshots, $day, \`${head%"${head#???????}"}\`: $1"; }
-remember() { echo "$head" >"$captured"; }
+# Keeps the captured commit and the tooling commit it ran with.
+remember() {
+	echo "$head" >"$captured"
+	[ -z "$tooling" ] || echo "$tooling" >"$home/tooling"
+}
 finish() {
 	cd "$checkout" || exit 1
 	git worktree remove --force "$tree"
@@ -30,16 +49,18 @@ finish() {
 	exit 0
 }
 
-# Stops trying this commit; the last captured one stays, so the next change covers it.
+# Stops trying this commit until an app change or a moved tag; the last captured one stays.
 gives_up() {
 	echo "$head" >"$failed"
+	[ -z "$tooling" ] || echo "$tooling" >"$home/tooling"
 	note "$1"
 	finish
 }
 
-[ "$head" != "$last" ] || exit 0
-[ "$head" != "$(cat "$failed" 2>/dev/null)" ] || exit 0
-if [ -n "$last" ]; then
+# A moved tag is an app change by itself, so it skips the three ways out below.
+[ -n "$moved" ] || [ "$head" != "$last" ] || exit 0
+[ -n "$moved" ] || [ "$head" != "$(cat "$failed" 2>/dev/null)" ] || exit 0
+if [ -z "$moved" ] && [ -n "$last" ]; then
 	# Word splitting is wanted: each watched path is its own argument, and none holds a space.
 	# shellcheck disable=SC2046
 	if git diff --quiet "$last" "$head" -- $config ci_scripts/xcode-tooling.version \
