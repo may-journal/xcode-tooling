@@ -59,7 +59,7 @@ A capture that can't start names what is missing before it makes a simulator. It
 
 ## When a capture runs
 
-The agent polls `origin/main` every five minutes and exits at once unless a commit changed a watched path. It records the last captured commit, so each change is captured once and a skipped run retries on the next poll. A failed commit isn't retried, and the next change picks it up. A release lane calls `capture_for_release` first; a busy simulator or an unclean tree stops the release.
+The agent polls `origin/main` every five minutes and exits at once unless a commit changed a watched path. It records the last captured commit, so each change is captured once and a skipped run retries on the next poll. A failed commit isn't retried until the next change or tooling release. A release lane calls `capture_for_release` first; a busy simulator or an unclean tree stops the release.
 
 ## Releases
 
@@ -67,7 +67,7 @@ Release Please keeps a release pull request open from the conventional commits o
 
 A major release makes a new tag such as `v2`, which no app follows until its version line names it. To undo a bad release, point `v1` back at the release before it. Each hook clones the tag on its own, so a release that lands mid-build can split one build across two releases.
 
-The screenshot agent recaptures when an app's version file changes, and a moved `v1` changes no app file. So a release that changes the captures shows only at the app's next watched change.
+A moved `v1` changes no app file, so the screenshot agent also records the commit the tag named at its last capture. A release that moves the tag is captured once on the next poll. A failed lookup captures nothing.
 
 ## Development
 
