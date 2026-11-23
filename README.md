@@ -15,7 +15,7 @@ Shared Xcode Cloud scripts and fastlane lanes for the may-journal Swift apps, re
 | `ci_scripts/screenshots-release.sh` | By `capture_for_release` | Captures from the release commit, and fails rather than let a release carry stale images |
 | `fastlane/Fastfile` | On a Mac, through the app's lane file | The `status`, `cloud_status`, `cloud_build`, `archive`, `screenshots` and `capture_for_release` lanes. None uploads a build. |
 
-Both scripts run from the app's root.
+Every script runs from the app's root.
 
 ## How an app uses a release
 
@@ -61,7 +61,7 @@ The agent polls `origin/main` every five minutes and exits at once unless a comm
 
 ## Releases
 
-Release Please keeps a release pull request open from the conventional commits on main. Merging it tags `vX.Y.Z`, and the `Move the major version tag` step of [release-please.yml](.github/workflows/release-please.yml) points `vX` at the same commit. So `v1` always names the newest 1.x release. A `fix` makes a patch, a `feat` a minor release, and a breaking change a major one.
+Release Please keeps a release pull request open from the conventional commits on main. Merging it tags `vX.Y.Z`, and [release-please.yml](.github/workflows/release-please.yml) calls the [reusable release workflow](https://github.com/may-journal/fitness-runner/blob/main/.github/workflows/release-please-reusable.yml). Its `Move the major version tag` step points `vX` at the same commit, so `v1` always names the newest 1.x release. A `fix` makes a patch, a `feat` a minor release, and a breaking change a major one.
 
 A major release makes a new tag such as `v2`, which no app follows until its version line names it. To undo a bad release, point `v1` back at the release before it. Each hook clones the tag on its own, so a release that lands mid-build can split one build across two releases.
 
