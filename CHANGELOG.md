@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/may-journal/xcode-tooling/compare/v1.2.0...v1.2.1) (2026-11-23)
+
+
+### Bug Fixes
+
+* **screenshots:** name what a capture is missing before it starts ([#41](https://github.com/may-journal/xcode-tooling/issues/41)) ([f0c9ffc](https://github.com/may-journal/xcode-tooling/commit/f0c9ffca0053e1f56d1dfbf5f0ac10b30f627f9c))
+
 ## [1.2.0](https://github.com/may-journal/xcode-tooling/compare/v1.1.0...v1.2.0) (2026-11-07)
 
 
