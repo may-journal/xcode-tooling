@@ -49,6 +49,10 @@ func Test0007_3(t *testing.T) {
 
 func Test0007_4(t *testing.T) {
 	t.Parallel()
-	stopsEarly(t, strings.Replace(screenshotConfig, `"scheme": "App",`, "", 1), 78, "sets no .scheme")
-	stopsEarly(t, strings.Replace(screenshotConfig, `"sizes": [{"folder": "phone", "device": "Phone", "width": 10, "height": 20}]`, `"sizes": []`, 1), 78, "sets no .sizes")
+	t.Run("no scheme", func(t *testing.T) {
+		stopsEarly(t, strings.Replace(screenshotConfig, `"scheme": "App",`, "", 1), 78, "sets no .scheme")
+	})
+	t.Run("no sizes", func(t *testing.T) {
+		stopsEarly(t, strings.Replace(screenshotConfig, `"sizes": [{"folder": "phone", "device": "Phone", "width": 10, "height": 20}]`, `"sizes": []`, 1), 78, "sets no .sizes")
+	})
 }

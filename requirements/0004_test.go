@@ -84,12 +84,18 @@ func Test0004_7(t *testing.T) {
 	mustDo(t, os.WriteFile(filepath.Join(hooks, "pre-commit"), []byte("#!/bin/sh\nexit 1\n"), 0o755))
 	gitIn(t, app.checkout, "config", "core.hooksPath", hooks)
 	mustDo(t, os.WriteFile(app.captures+".images", nil, 0o644))
-	app.polls(t, false)
-	app.polls(t, false)
-	app.merges(t, "src/App.swift2")
-	if got := app.polls(t, false); got != 2 {
-		t.Errorf("captured %d times, want the first change once and the later one once", got)
-	}
+	t.Run("0004.7.1 it skips the failed commit", func(t *testing.T) {
+		app.polls(t, false)
+		if got := app.polls(t, false); got != 1 {
+			t.Errorf("captured %d times, want the failed commit once", got)
+		}
+	})
+	t.Run("0004.7.2 it captures the later change", func(t *testing.T) {
+		app.merges(t, "src/App.swift2")
+		if got := app.polls(t, false); got != 2 {
+			t.Errorf("captured %d times, want the first change once and the later one once", got)
+		}
+	})
 }
 
 func Test0004_8(t *testing.T) {

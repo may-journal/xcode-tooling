@@ -14,7 +14,7 @@ capture runs that start
 
 ## Requirements
 
-- 0008.1
-  - Given Owner has a capture whose clone finishes well inside its bound
-    - When the capture ends
-      - Then no timer of that capture still runs
+1. Leaves no timer behind
+   1. GIVEN Owner has a capture whose clone finishes well inside its bound
+      1. WHEN the capture ends
+         1. THEN no timer of that capture still runs
