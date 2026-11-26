@@ -14,19 +14,20 @@ capture runs that cannot start
 
 ## Requirements
 
-- 0007.1
-  - Given Owner has a Mac with no `jq`
-    - When a capture runs `screenshots.sh`
-      - Then it exits 69 naming `jq` and makes no simulator
-- 0007.2
-  - Given Owner has an app with no screenshots config
-    - When a capture runs `screenshots.sh`
-      - Then it exits 66 naming the config path and makes no simulator
-- 0007.3
-  - Given Owner has an app whose screenshots config is not JSON
-    - When a capture runs `screenshots.sh`
-      - Then it exits 78 saying so and makes no simulator
-- 0007.4
-  - Given Owner has an app whose screenshots config names no scheme, then no sizes
-    - When a capture runs `screenshots.sh`
-      - Then each run exits 78 naming that setting and makes no simulator
+1. Names a missing jq
+   1. GIVEN Owner has a Mac with no `jq`
+      1. WHEN a capture runs `screenshots.sh`
+         1. THEN it exits 69 naming `jq` and makes no simulator
+2. Names a missing config
+   1. GIVEN Owner has an app with no screenshots config
+      1. WHEN a capture runs `screenshots.sh`
+         1. THEN it exits 66 naming the config path and makes no simulator
+3. Rejects a config that is not JSON
+   1. GIVEN Owner has an app whose screenshots config is not JSON
+      1. WHEN a capture runs `screenshots.sh`
+         1. THEN it exits 78 saying so and makes no simulator
+4. Names a missing setting
+   1. GIVEN Owner has an app whose screenshots config names no scheme
+   2. GIVEN no sizes
+      1. WHEN a capture runs `screenshots.sh`
+         1. THEN each run exits 78 naming that setting and makes no simulator

@@ -243,12 +243,16 @@ func Test0003_6(t *testing.T) {
 	t.Parallel()
 	app := newWatchedApp(t)
 	app.merges(t, "src/App.swift")
-	if got := app.polls(t, true); got != 0 {
-		t.Errorf("a busy poll captured %d times", got)
-	}
-	if got := app.polls(t, false); got != 1 {
-		t.Errorf("the next poll captured %d times, want 1", got)
-	}
+	t.Run("0003.6.1 a busy poll captures nothing", func(t *testing.T) {
+		if got := app.polls(t, true); got != 0 {
+			t.Errorf("a busy poll captured %d times", got)
+		}
+	})
+	t.Run("0003.6.2 the next poll captures the change", func(t *testing.T) {
+		if got := app.polls(t, false); got != 1 {
+			t.Errorf("the next poll captured %d times, want 1", got)
+		}
+	})
 }
 
 // releaseApp is a clean release commit of an app.

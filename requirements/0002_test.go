@@ -15,18 +15,22 @@ func Test0002_1(t *testing.T) {
 		"changelog/2026-10-20-0900-older.md": "---\nrelatedConfigurations: []\n---\n\n### 2026.10.20.0900\n\n> Older change.\n\n- Fix: old\n",
 		"changelog/2026-10-24-1200-newer.md": "---\nrelatedConfigurations: []\n---\n\n### 2026.10.24.1200\n\n> Photos load faster.\n\n- Fix: the grid scrolls smoothly\n- Feat: a share button\n",
 	})
-	notesAre(t, app, "CI_ARCHIVE_PATH=", "")
-	notesAre(t, app, archive, "Photos load faster.\n\n- Fix: the grid scrolls smoothly\n- Feat: a share button\n")
+	t.Run("0002.1.1 a build writes no notes", func(t *testing.T) {
+		notesAre(t, app, "CI_ARCHIVE_PATH=", "")
+	})
+	t.Run("0002.1.2 each archive writes the newest entry then the head's then none", func(t *testing.T) {
+		notesAre(t, app, archive, "Photos load faster.\n\n- Fix: the grid scrolls smoothly\n- Feat: a share button\n")
 
-	gitIn(t, app, "init", "-q")
-	gitIn(t, app, "add", ".")
-	gitIn(t, app, "commit", "-q", "-m", "first")
-	mustDo(t, os.WriteFile(filepath.Join(app, "changelog", "2026-10-19-0800-merged-last.md"), []byte("### 2026.10.19.0800\n\n> Merged last.\n\n- Fix: late\n"), 0o644))
-	gitIn(t, app, "add", ".")
-	gitIn(t, app, "commit", "-q", "-m", "second")
-	notesAre(t, app, archive, "Merged last.\n\n- Fix: late\n")
+		gitIn(t, app, "init", "-q")
+		gitIn(t, app, "add", ".")
+		gitIn(t, app, "commit", "-q", "-m", "first")
+		mustDo(t, os.WriteFile(filepath.Join(app, "changelog", "2026-10-19-0800-merged-last.md"), []byte("### 2026.10.19.0800\n\n> Merged last.\n\n- Fix: late\n"), 0o644))
+		gitIn(t, app, "add", ".")
+		gitIn(t, app, "commit", "-q", "-m", "second")
+		notesAre(t, app, archive, "Merged last.\n\n- Fix: late\n")
 
-	notesAre(t, appCheckout(t, nil), archive, "")
+		notesAre(t, appCheckout(t, nil), archive, "")
+	})
 }
 
 // notesAre runs ci_post_xcodebuild.sh in app with env and fails unless the notes match want.

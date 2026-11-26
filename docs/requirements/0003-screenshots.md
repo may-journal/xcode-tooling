@@ -14,35 +14,37 @@ capture runs that start
 
 ## Requirements
 
-- 0003.1
-  - Given Owner has an app and a booted simulator
-    - When a capture runs `screenshots.sh`
-      - Then it exits 75 and makes no simulator
-- 0003.2
-  - Given Owner has an app whose requirement doc names frames with headlines
-    - When a capture runs `screenshots.sh`
-      - Then each frame reaches the compose tool by the doc's name and headline
-- 0003.3
-  - Given Owner has an app whose test keeps failing
-    - When a capture runs `screenshots.sh`
-      - Then it fails after three tries and deletes each simulator it made
-- 0003.4
-  - Given Owner has a merge to main that changes no watched path
-    - When the agent polls `screenshots-watch.sh`
-      - Then it captures nothing
-- 0003.5
-  - Given Owner has a merge to main that changes a watched path
-    - When the agent polls `screenshots-watch.sh` twice
-      - Then it captures that commit once
-- 0003.6
-  - Given Owner has an app change and a booted simulator
-    - When the agent polls, then polls again once the simulator is gone
-      - Then the first poll captures nothing and the second captures the change
-- 0003.7
-  - Given Owner prepares a release while a simulator is booted
-    - When the release runs `screenshots-release.sh`
-      - Then it fails, so nothing uploads
-- 0003.8
-  - Given Owner prepares a release from a clean release commit
-    - When the release runs `screenshots-release.sh`
-      - Then the images come from that commit
+1. Refuses a booted simulator
+   1. GIVEN Owner has an app and a booted simulator
+      1. WHEN a capture runs `screenshots.sh`
+         1. THEN it exits 75 and makes no simulator
+2. Names each frame
+   1. GIVEN Owner has an app whose requirement doc names frames with headlines
+      1. WHEN a capture runs `screenshots.sh`
+         1. THEN each frame reaches the compose tool by the doc's name and headline
+3. Gives up after three tries
+   1. GIVEN Owner has an app whose test keeps failing
+      1. WHEN a capture runs `screenshots.sh`
+         1. THEN it fails after three tries and deletes each simulator it made
+4. Skips an unwatched merge
+   1. GIVEN Owner has a merge to main that changes no watched path
+      1. WHEN the agent polls `screenshots-watch.sh`
+         1. THEN it captures nothing
+5. Captures a watched merge once
+   1. GIVEN Owner has a merge to main that changes a watched path
+      1. WHEN the agent polls `screenshots-watch.sh` twice
+         1. THEN it captures that commit once
+6. Waits for a free simulator
+   1. GIVEN Owner has an app change and a booted simulator
+      1. WHEN the agent polls
+         1. THEN the first poll captures nothing
+      2. WHEN the agent polls again once the simulator is gone
+         1. THEN the second captures the change
+7. Stops a release with a simulator
+   1. GIVEN Owner prepares a release while a simulator is booted
+      1. WHEN the release runs `screenshots-release.sh`
+         1. THEN it fails so nothing uploads
+8. Captures the release commit
+   1. GIVEN Owner prepares a release from a clean release commit
+      1. WHEN the release runs `screenshots-release.sh`
+         1. THEN the images come from that commit

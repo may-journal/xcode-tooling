@@ -14,19 +14,21 @@ tooling releases that move a tag an agent follows
 
 ## Requirements
 
-- 0006.1
-  - Given Owner has a tooling release that moves the app's tag while main stays
-    - When the agent polls `screenshots-watch.sh` twice
-      - Then it captures once
-- 0006.2
-  - Given Owner has an agent with no record of the tag
-    - When the agent polls
-      - Then it captures nothing and records the commit the tag names
-- 0006.3
-  - Given Owner has a moved tag and a tooling repo the agent can't reach
-    - When the agent polls
-      - Then it captures nothing and keeps its record
-- 0006.4
-  - Given Owner has a commit whose capture failed
-    - When the agent polls, then polls again after a release moves the tag
-      - Then it skips the commit, then tries it again
+1. Captures a moved tag once
+   1. GIVEN Owner has a tooling release that moves the app's tag while main stays
+      1. WHEN the agent polls `screenshots-watch.sh` twice
+         1. THEN it captures once
+2. Records a first tag
+   1. GIVEN Owner has an agent with no record of the tag
+      1. WHEN the agent polls
+         1. THEN it captures nothing and records the commit the tag names
+3. Keeps its record when the tooling is out of reach
+   1. GIVEN Owner has a moved tag and a tooling repo the agent can't reach
+      1. WHEN the agent polls
+         1. THEN it captures nothing and keeps its record
+4. Retries a failed commit after a release
+   1. GIVEN Owner has a commit whose capture failed
+      1. WHEN the agent polls
+         1. THEN it skips the commit
+      2. WHEN the agent polls again after a release moves the tag
+         1. THEN it tries the commit again

@@ -14,19 +14,19 @@ agent installs that run
 
 ## Requirements
 
-- 0009.1
-  - Given Owner has an app's main checkout
-    - When Owner runs `screenshots-agent.sh`
-      - Then launchd loads a job by the config's label that polls every five minutes from that checkout
-- 0009.2
-  - Given Owner has a Mac account with no `LaunchAgents` folder
-    - When Owner runs `screenshots-agent.sh`
-      - Then it makes the folder and loads the job
-- 0009.3
-  - Given Owner has the agent installed
-    - When Owner runs `screenshots-agent.sh` again
-      - Then it unloads the old job first and leaves one loaded job
-- 0009.4
-  - Given Owner has the agent installed
-    - When Owner runs `screenshots-agent.sh` with `SCREENSHOTS_REMOVE` set
-      - Then it unloads the job and deletes the job file and its copy of the watch script
+1. Loads the polling job
+   1. GIVEN Owner has an app's main checkout
+      1. WHEN Owner runs `screenshots-agent.sh`
+         1. THEN launchd loads a job by the config's label that polls every five minutes from that checkout
+2. Makes the LaunchAgents folder
+   1. GIVEN Owner has a Mac account with no `LaunchAgents` folder
+      1. WHEN Owner runs `screenshots-agent.sh`
+         1. THEN it makes the folder and loads the job
+3. Reloads one job
+   1. GIVEN Owner has the agent installed
+      1. WHEN Owner runs `screenshots-agent.sh` again
+         1. THEN it unloads the old job first and leaves one loaded job
+4. Removes the agent
+   1. GIVEN Owner has the agent installed
+      1. WHEN Owner runs `screenshots-agent.sh` with `SCREENSHOTS_REMOVE` set
+         1. THEN it unloads the job and deletes the job file and its copy of the watch script

@@ -101,12 +101,16 @@ func Test0006_4(t *testing.T) {
 	// A shim that exits 3 stands for a capture that fails.
 	mustDo(t, os.WriteFile(filepath.Join(app.origin, "ci_scripts", "xcode-tooling.sh"), []byte("#!/bin/sh\necho \"$1\" >>\"$SHOTS_CAPTURES\"\nexit 3\n"), 0o755))
 	app.merges(t, "src/App.swift")
-	app.asks(t)
-	if got := app.asks(t); got != 1 {
-		t.Fatalf("a failed commit was captured %d times before any release, want 1", got)
-	}
-	app.releases(t)
-	if got := app.asks(t); got != 2 {
-		t.Errorf("captured %d times, want the failed commit tried again after the release", got)
-	}
+	t.Run("0006.4.1 it skips the failed commit", func(t *testing.T) {
+		app.asks(t)
+		if got := app.asks(t); got != 1 {
+			t.Fatalf("a failed commit was captured %d times before any release, want 1", got)
+		}
+	})
+	t.Run("0006.4.2 it tries the commit again after the release", func(t *testing.T) {
+		app.releases(t)
+		if got := app.asks(t); got != 2 {
+			t.Errorf("captured %d times, want the failed commit tried again after the release", got)
+		}
+	})
 }

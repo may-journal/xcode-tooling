@@ -14,7 +14,13 @@ archived app builds that run this release
 
 ## Requirements
 
-- 0002.1
-  - Given Owner has an app with changelog entries, then a head commit adding an older-named one, then no changelog
-    - When Xcode Cloud runs `ci_post_xcodebuild.sh` after a build, then after each archive
-      - Then the build writes no notes; the notes hold the newest entry, then the head's, then none at all
+1. Writes the tester notes
+   1. GIVEN Owner has an app with changelog entries
+   2. GIVEN a head commit adding an older-named one
+   3. GIVEN no changelog
+      1. WHEN Xcode Cloud runs `ci_post_xcodebuild.sh` after a build
+         1. THEN the build writes no notes
+      2. WHEN Xcode Cloud runs `ci_post_xcodebuild.sh` after each archive
+         1. THEN the notes hold the newest entry
+         2. THEN the notes hold the head's
+         3. THEN the notes hold none at all
