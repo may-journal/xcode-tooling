@@ -43,6 +43,9 @@ func Test0004_3(t *testing.T) {
 	t.Parallel()
 	out, code, calls := shotsBeside(t, "screenshots-1-phone", shotApp(t), "SHOTS_BOOTED=", "SHOTS_TEST_EXIT=0")
 	sees(t, out, code, 0)
+	if !strings.Contains(calls, "test-without-building") {
+		t.Errorf("the capture did not go on after deleting the simulator:\n%s", calls)
+	}
 	if !strings.Contains(calls, "simctl delete sim.left") {
 		t.Errorf("the dead run's simulator stayed:\n%s", calls)
 	}

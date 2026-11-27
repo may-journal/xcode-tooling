@@ -87,6 +87,9 @@ func Test0006_3(t *testing.T) {
 	app := newTaggedApp(t, true)
 	before := app.recorded(t)
 	app.releases(t)
+	if app.tagged(t) == before {
+		t.Fatal("the release did not move the tag the record names")
+	}
 	t.Setenv("XCODE_TOOLING_URL", filepath.Join(app.state, "gone"))
 	if got := app.asks(t); got != 0 {
 		t.Errorf("a poll that could not reach the tooling repo captured %d times", got)

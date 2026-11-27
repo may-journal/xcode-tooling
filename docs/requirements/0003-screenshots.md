@@ -15,17 +15,21 @@ capture runs that start
 ## Requirements
 
 1. Refuses a booted simulator
-   1. GIVEN Owner has an app and a booted simulator
+   1. GIVEN Owner has an app
+   2. GIVEN a booted simulator
       1. WHEN a capture runs `screenshots.sh`
-         1. THEN it exits 75 and makes no simulator
+         1. THEN it exits 75
+         2. THEN it makes no simulator
 2. Names each frame
    1. GIVEN Owner has an app whose requirement doc names frames with headlines
       1. WHEN a capture runs `screenshots.sh`
-         1. THEN each frame reaches the compose tool by the doc's name and headline
+         1. THEN each frame reaches the compose tool by the doc's name
+         2. THEN each frame reaches the compose tool by the doc's headline
 3. Gives up after three tries
    1. GIVEN Owner has an app whose test keeps failing
       1. WHEN a capture runs `screenshots.sh`
-         1. THEN it fails after three tries and deletes each simulator it made
+         1. THEN it fails after three tries
+         2. THEN it deletes each simulator it made
 4. Skips an unwatched merge
    1. GIVEN Owner has a merge to main that changes no watched path
       1. WHEN the agent polls `screenshots-watch.sh`
@@ -35,7 +39,8 @@ capture runs that start
       1. WHEN the agent polls `screenshots-watch.sh` twice
          1. THEN it captures that commit once
 6. Waits for a free simulator
-   1. GIVEN Owner has an app change and a booted simulator
+   1. GIVEN Owner has an app change
+   2. GIVEN a booted simulator
       1. WHEN the agent polls
          1. THEN the first poll captures nothing
       2. WHEN the agent polls again once the simulator is gone

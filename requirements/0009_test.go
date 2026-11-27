@@ -112,6 +112,9 @@ func Test0009_2(t *testing.T) {
 	m := newAgentMac(t, false)
 	out, code, _ := m.runs(t)
 	sees(t, out, code, 0, "org.example.shots polls main")
+	if _, err := os.Stat(filepath.Dir(m.plist())); err != nil {
+		t.Errorf("the LaunchAgents folder was not made: %v", err)
+	}
 	m.holdsOneJob(t)
 }
 

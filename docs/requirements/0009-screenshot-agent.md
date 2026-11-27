@@ -21,12 +21,16 @@ agent installs that run
 2. Makes the LaunchAgents folder
    1. GIVEN Owner has a Mac account with no `LaunchAgents` folder
       1. WHEN Owner runs `screenshots-agent.sh`
-         1. THEN it makes the folder and loads the job
+         1. THEN it makes the folder
+         2. THEN it loads the job
 3. Reloads one job
    1. GIVEN Owner has the agent installed
       1. WHEN Owner runs `screenshots-agent.sh` again
-         1. THEN it unloads the old job first and leaves one loaded job
+         1. THEN it unloads the old job first
+         2. THEN it leaves one loaded job
 4. Removes the agent
    1. GIVEN Owner has the agent installed
       1. WHEN Owner runs `screenshots-agent.sh` with `SCREENSHOTS_REMOVE` set
-         1. THEN it unloads the job and deletes the job file and its copy of the watch script
+         1. THEN it unloads the job
+         2. THEN it deletes the job file
+         3. THEN it deletes its copy of the watch script

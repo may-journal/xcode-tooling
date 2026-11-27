@@ -18,9 +18,10 @@ archived app builds that run this release
    1. GIVEN Owner has an app with changelog entries
    2. GIVEN a head commit adding an older-named one
    3. GIVEN no changelog
-      1. WHEN Xcode Cloud runs `ci_post_xcodebuild.sh` after a build
+   4. GIVEN Xcode Cloud runs `ci_post_xcodebuild.sh`
+      1. WHEN a build ends
          1. THEN the build writes no notes
-      2. WHEN Xcode Cloud runs `ci_post_xcodebuild.sh` after each archive
+      2. WHEN each archive ends
          1. THEN the notes hold the newest entry
          2. THEN the notes hold the head's
          3. THEN the notes hold none at all

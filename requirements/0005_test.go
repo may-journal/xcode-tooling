@@ -33,6 +33,9 @@ func Test0005_3(t *testing.T) {
 	t.Parallel()
 	out, code, calls := shotsCapture(t, shotApp(t), "SHOTS_BOOTED=", "SHOTS_TEST_EXIT=0", "SHOTS_CUT_WRITE=1")
 	sees(t, out, code, 0)
+	if !strings.Contains(calls, "test-without-building") {
+		t.Errorf("the size never ran after the cut write:\n%s", calls)
+	}
 	if made := strings.Count(calls, "simctl clone"); made != 1 {
 		t.Errorf("cloned %d times, want the first clone to start the size:\n%s", made, calls)
 	}
