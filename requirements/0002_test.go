@@ -15,10 +15,13 @@ func Test0002_1(t *testing.T) {
 		"changelog/2026-10-20-0900-older.md": "---\nrelatedConfigurations: []\n---\n\n### 2026.10.20.0900\n\n> Older change.\n\n- Fix: old\n",
 		"changelog/2026-10-24-1200-newer.md": "---\nrelatedConfigurations: []\n---\n\n### 2026.10.24.1200\n\n> Photos load faster.\n\n- Fix: the grid scrolls smoothly\n- Feat: a share button\n",
 	})
-	t.Run("0002.1.1 a build writes no notes", func(t *testing.T) {
+	if _, err := os.Stat(filepath.Join("..", "ci_scripts", "ci_post_xcodebuild.sh")); err != nil {
+		t.Fatalf("the tooling has no ci_post_xcodebuild.sh for Xcode Cloud to run: %v", err)
+	}
+	t.Run("0002.1.1 a build ends", func(t *testing.T) {
 		notesAre(t, app, "CI_ARCHIVE_PATH=", "")
 	})
-	t.Run("0002.1.2 each archive writes the newest entry then the head's then none", func(t *testing.T) {
+	t.Run("0002.1.2 each archive ends", func(t *testing.T) {
 		notesAre(t, app, archive, "Photos load faster.\n\n- Fix: the grid scrolls smoothly\n- Feat: a share button\n")
 
 		gitIn(t, app, "init", "-q")

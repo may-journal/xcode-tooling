@@ -15,9 +15,10 @@ app cloud runs that clone this release
 ## Requirements
 
 1. Generates the project
-   1. GIVEN Owner has an app with `project.yml` and a download failing the checksum
-   2. GIVEN one with a committed project
-   3. GIVEN XcodeGen 2.46.0 installed
+   1. GIVEN Owner has an app with `project.yml`
+   2. GIVEN a download failing the checksum
+   3. GIVEN one with a committed project
+   4. GIVEN XcodeGen 2.46.0 installed
       1. WHEN Xcode Cloud runs `ci_post_clone.sh` from the app's root
          1. THEN the app's step runs
          2. THEN it exits 1 naming the checksum

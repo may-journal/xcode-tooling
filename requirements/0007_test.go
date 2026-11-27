@@ -18,7 +18,7 @@ func stopsEarly(t *testing.T, config string, code int, want string) {
 	out, got, calls := shotsCapture(t, appCheckout(t, files), "SHOTS_BOOTED=", "SHOTS_TEST_EXIT=0")
 	sees(t, out, got, code, want)
 	if calls != "" {
-		t.Errorf("the run reached the simulators before stopping:\n%s", calls)
+		t.Errorf("the run made a simulator call before it stopped:\n%s", calls)
 	}
 }
 
@@ -33,7 +33,7 @@ func Test0007_1(t *testing.T) {
 		"SCREENSHOTS_LOCK="+filepath.Join(bin, "lock"))
 	sees(t, out, code, 69, "jq is not installed")
 	if _, err := os.Stat(filepath.Join(bin, "lock")); err == nil {
-		t.Error("the run took the lock before stopping")
+		t.Error("the run took the lock, so it did not stop at the missing jq")
 	}
 }
 

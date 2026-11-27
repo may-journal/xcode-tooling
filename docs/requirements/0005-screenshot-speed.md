@@ -26,7 +26,8 @@ capture runs that start
 3. Clones after a cut write
    1. GIVEN Owner has a first boot whose shutdown cut a file write short
       1. WHEN a capture clones that device
-         1. THEN the clone starts and the size runs
+         1. THEN the clone starts
+         2. THEN the size runs
 4. Starts the third size early
    1. GIVEN Owner has three sizes running two at once
       1. WHEN the quick size finishes
@@ -38,7 +39,8 @@ capture runs that start
 6. Names a missing capture
    1. GIVEN Owner has a size missing one capture
       1. WHEN the compose tool runs
-         1. THEN it fails and names that capture
+         1. THEN it fails
+         2. THEN it names that capture
 7. Fails a device that can't be cloned
    1. GIVEN Owner has a device that can't be cloned
       1. WHEN a capture runs `screenshots.sh`
@@ -46,4 +48,5 @@ capture runs that start
 8. Bounds a clone that never finishes
    1. GIVEN Owner has a device whose clone never finishes
       1. WHEN a capture runs `screenshots.sh`
-         1. THEN each try gives up after its bound and the run fails
+         1. THEN each try gives up after its bound
+         2. THEN the run fails

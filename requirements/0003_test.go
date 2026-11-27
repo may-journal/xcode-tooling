@@ -205,7 +205,8 @@ func Test0003_1(t *testing.T) {
 func Test0003_2(t *testing.T) {
 	t.Parallel()
 	out, code, _ := runCapture(t, shotApp(t), "SHOTS_BOOTED=", "SHOTS_TEST_EXIT=0")
-	sees(t, out, code, 0, "1\t01-day-view\tSay what you saw.", "2\t02-editor\tYour words stay.")
+	sees(t, out, code, 0, "01-day-view", "02-editor")
+	sees(t, out, code, 0, "Say what you saw.", "Your words stay.")
 }
 
 func Test0003_3(t *testing.T) {

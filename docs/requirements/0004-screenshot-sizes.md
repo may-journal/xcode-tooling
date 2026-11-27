@@ -19,15 +19,18 @@ capture runs with more than one size
       1. WHEN the sizes start
          1. THEN both run at the same time
 2. Fails a size that runs out of tries
-   1. GIVEN Owner has an app with one size that keeps failing and one that passes
+   1. GIVEN Owner has an app with one size that keeps failing
+   2. GIVEN one size that passes
       1. WHEN the failing size runs out of tries
          1. THEN the run fails with no simulator left behind
 3. Deletes a dead capture's simulator
    1. GIVEN Owner has a booted simulator left by a dead capture
       1. WHEN the next capture starts
-         1. THEN it deletes that simulator and goes on
+         1. THEN it deletes that simulator
+         2. THEN it goes on
 4. Ignores a quote with no frame
-   1. GIVEN Owner has an acceptance that quotes words but names no frame
+   1. GIVEN Owner has an acceptance that quotes words
+   2. GIVEN it names no frame
       1. WHEN the capture reads the doc
          1. THEN that acceptance is no frame
 5. Counts a tooling bump

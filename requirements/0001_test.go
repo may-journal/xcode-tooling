@@ -15,6 +15,9 @@ func Test0001_1(t *testing.T) {
 		// No XcodeGen on PATH, as on a fresh Xcode Cloud machine, so the script downloads one.
 		out, code := runScript(t, app, "ci_post_clone.sh", "PATH=/usr/bin:/bin", "XCODEGEN_URL=file://"+fake)
 		sees(t, out, code, 1, "app step ran", "xcodegen.zip does not match XcodeGen 2.46.0's SHA-256")
+		if _, err := os.Stat(filepath.Join(app, "project.yml")); err != nil {
+			t.Errorf("the app lost its project.yml: %v", err)
+		}
 		if _, err := os.Stat(filepath.Join(app, "App.xcodeproj")); !os.IsNotExist(err) {
 			t.Errorf("a project was generated: %v", err)
 		}
