@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.2](https://github.com/may-journal/xcode-tooling/compare/v1.3.1...v1.3.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **requirements:** pass the newest Gherkin rules ([#60](https://github.com/may-journal/xcode-tooling/issues/60)) ([bdfee7e](https://github.com/may-journal/xcode-tooling/commit/bdfee7e9634a364da9e39b30d4231bcdad38f867))
+
 ## [1.3.1](https://github.com/may-journal/xcode-tooling/compare/v1.3.0...v1.3.1) (2026-11-23)
 
 
